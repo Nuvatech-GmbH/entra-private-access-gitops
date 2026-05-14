@@ -1,0 +1,15 @@
+# Pflicht: Ersetzen Sie die Platzhalter-Teams durch Ihre GitHub-Teams oder Benutzer:innen.
+# Siehe https://docs.github.com/en/repositories/managing-your-repositorys-settings-and-features/customizing-your-repository/about-code-owners
+
+# Plattform / Sicherheit: globale Governance-Dateien
+/.github/ @MyOrg/platform-engineering @MyOrg/security-engineering
+/modules/ @MyOrg/platform-engineering
+/scripts/ @MyOrg/platform-engineering
+/schemas/ @MyOrg/platform-engineering
+/tests/ @MyOrg/platform-engineering
+
+# Produktive Desired-State-Definitionen (strikte Reviews)
+/config/applications/ @MyOrg/gsa-application-owners @MyOrg/platform-engineering
+
+# Dokumentation (kann breiter sein)
+/docs/ @MyOrg/platform-engineering @MyOrg/gsa-application-owners

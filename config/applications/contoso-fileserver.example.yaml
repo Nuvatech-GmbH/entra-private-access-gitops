@@ -1,0 +1,24 @@
+apiVersion: gsa.gitops/v1
+kind: PrivateAccessApplication
+metadata:
+  name: PA-CONTOSO-FILES-EMEA
+  description: SMB-Zugriff auf definierte Fileserver-Ports (Least-Privilege Ports).
+  owners:
+    - files@contoso.com
+    - platform@contoso.com
+  changeReference: RFC-7781
+  tags:
+    region: emea
+    workload: fileServices
+spec:
+  applicationType: enterprise
+  isAccessibleViaZTNAClient: true
+  connectorGroup: CG-EU-CENTRAL-PA-PROD-01
+  destinations:
+    - host: fs-emea-01.contoso.corp
+      type: fqdn
+      ports: ["445", "135", "139"]
+      protocol: tcp
+  assignments:
+    - principalType: Group
+      principalName: SEC-GSA-PA-FILES-EMEA-READONLY

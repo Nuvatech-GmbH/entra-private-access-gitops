@@ -1,0 +1,83 @@
+name: pull-request-validation
+
+on:
+  pull_request:
+    branches: [ "main" ]
+    paths:
+      - "config/applications/**"
+      - "schemas/**"
+      - "modules/**"
+      - "scripts/**"
+      - "tests/**"
+      - ".github/workflows/**"
+
+permissions:
+  contents: read
+  pull-requests: write
+
+jobs:
+  call-validation:
+    uses: ./.github/workflows/validation.yml
+
+  what-if-comment:
+    needs: [call-validation]
+    if: github.event.pull_request.head.repo.fork == false
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write
+      contents: read
+      pull-requests: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup PowerShell
+        uses: actions/setup-powershell@v1
+        with:
+          version: '7.4'
+
+      - name: Azure Login (OIDC)
+        uses: azure/login@v2
+        with:
+          client-id: ${{ vars.GSA_GRAPH_CLIENT_ID }}
+          tenant-id: ${{ vars.AZURE_TENANT_ID }}
+          allow-no-subscriptions: true
+
+      - name: Install modules
+        shell: pwsh
+        run: |
+          Set-PSRepository PSGallery -InstallationPolicy Trusted
+          Install-Module powershell-yaml, Microsoft.Graph.Authentication -Scope CurrentUser -Force
+
+      - name: Export WhatIf/Drift report
+        shell: pwsh
+        env:
+          GSA_TENANT_ID: ${{ vars.AZURE_TENANT_ID }}
+        run: |
+          $out = Join-Path "${{ github.workspace }}" "artifacts/whatif-report.json"
+          New-Item -ItemType Directory -Path (Split-Path $out) -Force | Out-Null
+          & (Join-Path "${{ github.workspace }}" "scripts/utils/Export-GSAWhatIfReport.ps1") -ApplicationsPath (Join-Path "${{ github.workspace }}" "config/applications") -OutputPath $out
+
+      - name: Upload WhatIf artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: whatif-report-${{ github.event.pull_request.number }}
+          path: ${{ github.workspace }}/artifacts/whatif-report.json
+
+      - name: PR comment (summary)
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          cat > comment.md <<'EOF'
+          ### Global Secure Access – WhatIf / Drift (PR)
+
+          Dieser Schritt erzeugt einen **Drift-/Vergleichsreport** gegen den produktiven Mandanten (read-only über Microsoft Graph).
+
+          - Artefakt: `whatif-report-${{ github.event.pull_request.number }}`
+          - Für Fork-PRs ist dieser Job deaktiviert (OIDC).
+
+          **Wichtig**: Produktive Mutationen passieren erst nach Merge auf `main` und Genehmigung im Environment `production` (siehe `deploy-production.yml`).
+          EOF
+
+          gh pr comment "${{ github.event.pull_request.number }}" --repo "${{ github.repository }}" --body-file comment.md

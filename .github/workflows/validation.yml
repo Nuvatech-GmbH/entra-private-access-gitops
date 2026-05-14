@@ -1,0 +1,60 @@
+name: validation
+
+on:
+  workflow_dispatch:
+  workflow_call:
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup PowerShell
+        uses: actions/setup-powershell@v1
+        with:
+          version: '7.4'
+
+      - name: Install dependencies
+        shell: pwsh
+        run: |
+          Set-PSRepository PSGallery -InstallationPolicy Trusted
+          Install-Module powershell-yaml, Pester, PSScriptAnalyzer, Microsoft.Graph.Authentication -Scope CurrentUser -Force
+
+      - name: PSScriptAnalyzer (modules + scripts)
+        shell: pwsh
+        run: |
+          $repo = "${{ github.workspace }}"
+          $settings = Join-Path $repo 'PSScriptAnalyzerSettings.psd1'
+          $results = @()
+          foreach ($p in @((Join-Path $repo 'modules'), (Join-Path $repo 'scripts'))) {
+            $results += @(Invoke-ScriptAnalyzer -Path $p -Recurse -Severity @('Error','Warning') -Settings $settings)
+          }
+          if ($results) {
+            $results | Format-Table -AutoSize
+            throw "PSScriptAnalyzer hat $($results.Count) Befunde."
+          }
+
+      - name: YAML/Schema + Governance validation
+        shell: pwsh
+        run: |
+          & (Join-Path "${{ github.workspace }}" "scripts/validate/Invoke-GSAValidation.ps1") -RepoRoot "${{ github.workspace }}"
+
+      - name: Pester (Unit)
+        shell: pwsh
+        run: |
+          Import-Module Pester -MinimumVersion 5.0.0
+          Invoke-Pester -Path (Join-Path "${{ github.workspace }}" "tests/unit") -CI
+
+      - name: Upload validation artifacts (optional)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: repo-tree-${{ github.run_id }}
+          path: |
+            ${{ github.workspace }}/schemas
+            ${{ github.workspace }}/config/applications

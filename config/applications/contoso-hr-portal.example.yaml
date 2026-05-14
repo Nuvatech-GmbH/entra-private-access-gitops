@@ -1,0 +1,29 @@
+apiVersion: gsa.gitops/v1
+kind: PrivateAccessApplication
+metadata:
+  name: PA-CONTOSO-HR-PORTAL
+  description: Internes HR-Self-Service-Portal (HTTPS).
+  owners:
+    - platform@contoso.com
+    - hr-it@contoso.com
+  changeReference: CHG-204512-001
+  tags:
+    costCenter: "4490"
+    dataClassification: internal
+    criticality: medium
+spec:
+  applicationType: enterprise
+  isAccessibleViaZTNAClient: true
+  connectorGroup: CG-EU-WEST-PA-PROD-01
+  destinations:
+    - host: hr.contoso.corp
+      type: fqdn
+      ports: ["443"]
+      protocol: tcp
+    - host: "*.hr.contoso.corp"
+      type: fqdn
+      ports: ["443"]
+      protocol: tcp
+  assignments:
+    - principalType: Group
+      principalId: 11111111-1111-1111-1111-111111111111

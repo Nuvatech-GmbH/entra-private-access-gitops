@@ -1,0 +1,42 @@
+# PowerShell / Module Build
+*.dll
+*.pdb
+**/bin/
+**/obj/
+**/out/
+**/publish/
+*.zip
+*.nupkg
+
+# Local tooling
+.local/
+.tools/
+.vscode/*
+!.vscode/extensions.json
+!.vscode/settings.json.example
+
+# Secrets & credentials (never commit)
+*.pfx
+*.pem
+*.key
+.env
+.env.*
+*.secret.json
+**/secrets.local.*
+
+# Logs & reports
+*.log
+/reports/
+/artifacts/
+
+# OS / IDE
+.DS_Store
+Thumbs.db
+.idea/
+
+# Pester / coverage
+/coverage/
+TestResults/
+
+# Graph / deployment scratch
+*.graph.cache.json
