@@ -1,0 +1,24 @@
+apiVersion: gsa.gitops/v1
+kind: PrivateAccessApplication
+metadata:
+  name: PA-NUVATECH-OFFICE-RDP-GERSTHOFEN
+  description: RDP-Zugriff auf Office-Server Gersthofen (TCP/3389) über Connector Group Office-Gersthofen.
+  owners:
+    - platform@nuvatech.com
+  changeReference: INIT-OFFICE-RDP-GERSTHOFEN-001
+  tags:
+    site: gersthofen
+    protocol: rdp
+    environment: office
+spec:
+  applicationType: enterprise
+  isAccessibleViaZTNAClient: true
+  connectorGroup: Office-Gersthofen
+  destinations:
+    - host: "10.0.1.1"
+      type: ipAddress
+      ports: ["3389"]
+      protocol: tcp
+  assignments:
+    - principalType: Group
+      principalName: SEC-GSA-PA-OFFICE-RDP-GERSTHOFEN
