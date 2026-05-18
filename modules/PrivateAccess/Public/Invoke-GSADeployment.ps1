@@ -12,7 +12,7 @@ function Invoke-GSADeployment {
         [string]$CorrelationId = (New-GSACorrelationId)
     )
 
-    $files = Get-ChildItem -LiteralPath $ApplicationsPath -Filter '*.yaml' -File | Where-Object { $_.Name -notlike '.*' }
+    $files = Get-GSAApplicationConfigFiles -ApplicationsPath $ApplicationsPath
     $results = [System.Collections.Generic.List[object]]::new()
 
     foreach ($f in $files) {

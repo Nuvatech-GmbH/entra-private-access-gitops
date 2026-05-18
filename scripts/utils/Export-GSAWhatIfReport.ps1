@@ -18,7 +18,7 @@ if ([string]::IsNullOrWhiteSpace($TenantId)) {
 Initialize-GSAGraphSession -EntraTenantId $TenantId
 
 $report = [System.Collections.Generic.List[object]]::new()
-foreach ($f in Get-ChildItem -LiteralPath $ApplicationsPath -Filter '*.yaml' -File) {
+foreach ($f in (Get-GSAApplicationConfigFiles -ApplicationsPath $ApplicationsPath)) {
     $cmp = Compare-GSAState -ConfigurationPath $f.FullName -CorrelationId (New-GSACorrelationId)
     $report.Add([pscustomobject]@{ file = $f.Name; compare = $cmp }) | Out-Null
 }

@@ -21,7 +21,9 @@ function Get-RepoDestinationSignature {
 $correlation = New-GSACorrelationId
 Write-GSAStructuredLog -Level 'Information' -CorrelationId $correlation -Message 'Starte Repository-Validierung' -Data @{ repoRoot = $RepoRoot }
 
-$yamlFiles = Get-ChildItem -LiteralPath $ApplicationsPath -Filter '*.yaml' -File -ErrorAction SilentlyContinue
+$yamlFiles = @(Get-ChildItem -LiteralPath $ApplicationsPath -Filter '*.yaml' -File -ErrorAction SilentlyContinue)
+$exampleFiles = @($yamlFiles | Where-Object { $_.Name -like '*.example.yaml' })
+$yamlFiles = @($yamlFiles | Where-Object { $_.Name -notlike '*.example.yaml' })
 if (-not $yamlFiles) {
     throw "Keine YAML-Dateien gefunden unter: $ApplicationsPath"
 }
@@ -30,11 +32,11 @@ $issues = [System.Collections.Generic.List[string]]::new()
 $warnings = [System.Collections.Generic.List[string]]::new()
 $signatures = @{}
 
-foreach ($f in $yamlFiles) {
-    if ($f.Name -like '*.example.*') {
-        $warnings.Add("Hinweis: Beispieldatei wird validiert: $($f.Name)") | Out-Null
-    }
+foreach ($ex in $exampleFiles) {
+    $warnings.Add("Beispieldatei übersprungen (nicht für Deploy): $($ex.Name)") | Out-Null
+}
 
+foreach ($f in $yamlFiles) {
     try {
         if (-not $SkipSchema) {
             Test-GSAConfiguration -Path $f.FullName -SchemaPath $SchemaPath | Out-Null

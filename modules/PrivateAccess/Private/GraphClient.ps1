@@ -3,6 +3,22 @@ using namespace Microsoft.PowerShell.Commands
 $script:GSA_CustomApplicationTemplateId = '8adf8e6e-67b2-4cf2-a259-e3dc5476c621'
 $script:GSA_GraphBaseUri = 'https://graph.microsoft.com/beta'
 
+function Get-GSAApplicationConfigFiles {
+    <#
+    .SYNOPSIS
+    Liefert produktive Application-YAMLs (ohne Beispiel-Dateien *.example.yaml).
+    #>
+    [CmdletBinding()]
+    param(
+        [Parameter(Mandatory)][string]$ApplicationsPath
+    )
+
+    return @(
+        Get-ChildItem -LiteralPath $ApplicationsPath -Filter '*.yaml' -File |
+            Where-Object { $_.Name -notlike '.*' -and $_.Name -notlike '*.example.yaml' }
+    )
+}
+
 function Assert-MgConnected {
     $ctx = Get-MgContext -ErrorAction SilentlyContinue
     if (-not $ctx) {
@@ -35,7 +51,15 @@ function Invoke-GSAGraphBetaRequest {
     }
 
     Import-Module Microsoft.Graph.Authentication -ErrorAction Stop | Out-Null
-    return Invoke-MgGraphRequest @params
+    try {
+        return Invoke-MgGraphRequest @params
+    }
+    catch {
+        if ($_.Exception.Message -match '\b403\b|Forbidden|Authorization_RequestDenied') {
+            throw "Microsoft Graph verweigerte die Operation ($Method $RelativeUri). Prüfen Sie Application permissions (Application.ReadWrite.All, AppRoleAssignment.ReadWrite.All) und Admin Consent für die Pipeline-App."
+        }
+        throw
+    }
 }
 
 function ConvertTo-GSAGraphApplicationType {
