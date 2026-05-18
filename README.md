@@ -147,22 +147,76 @@ Strukturierte Logs (`Write-GSAStructuredLog`), Korrelation (`New-GSACorrelationI
 | `pull-request-validation.yml` | PR zu `main` | Ruft `validation.yml` auf + optional Drift/WhatIf + PR-Kommentar |
 | `deploy-production.yml` | Push `main` (Pfade gefiltert) | Produktives Reconcile nach Environment-Genehmigung |
 
-### Konfiguration in GitHub
+### Konfiguration: Microsoft Entra (Kurzüberblick)
 
-Repository Variables (Beispiel):
+Voraussetzung **vor** den GitHub-Schritten:
 
-- `AZURE_TENANT_ID`
-- `GSA_GRAPH_CLIENT_ID` (App Registration der Pipeline)
+1. App Registration (z. B. `sp-gsa-gitops-prod`) im Zielmandanten.
+2. **Federated Credentials** (GitHub Actions) – Subjects müssen zu den Workflows passen (siehe Tabelle unten).
+3. **Microsoft Graph → Application permissions** (nicht Delegated): `Application.ReadWrite.All`, `AppRoleAssignment.ReadWrite.All`, optional `Directory.Read.All` (oder `User.Read.All` + `Group.Read.All` bei `principalName` in YAML).
+4. **Grant admin consent** im Mandanten.
 
-GitHub Environment:
+| Workflow im Repo | Empfohlener Entity type in Entra | Subject (Beispiel) |
+| --- | --- | --- |
+| `deploy-production.yml` | **Environment** → `production` | `repo:<org>/<repo>:environment:production` |
+| `pull-request-validation.yml` (WhatIf) | **Pull request** | `repo:<org>/<repo>:pull_request` |
 
-- `production` mit **Required reviewers** und optional **Wait timer**
+Details zu Graph Permissions: `docs/security/authentication-and-permissions.md`
 
-Microsoft Entra:
+### Konfiguration in GitHub (Schritt für Schritt)
 
-- Federated Credential für GitHub OIDC passend zu eurer Branch/Environment-Strategie
+Nach Abschluss der App Registration in Entra konfigurieren Sie **nur Repository-Variablen und ein Environment** – **kein** `AZURE_CLIENT_SECRET`.
 
-Details: `docs/security/authentication-and-permissions.md`
+#### Schritt 1: Repository-Variablen
+
+Pfad: Repository → **Settings** → **Secrets and variables** → **Actions** → Tab **Variables** → **New repository variable**
+
+| Variable | Wert | Quelle (Entra Portal) |
+| --- | --- | --- |
+| `AZURE_TENANT_ID` | Directory (Tenant) ID | App Registration → **Overview** → **Directory (tenant) ID** |
+| `GSA_GRAPH_CLIENT_ID` | Application (client) ID | App Registration → **Overview** → **Application (client) ID** |
+
+Die Namen müssen **exakt** so heißen (Workflows verwenden `vars.AZURE_TENANT_ID` und `vars.GSA_GRAPH_CLIENT_ID`).
+
+#### Schritt 2: Environment `production`
+
+Pfad: **Settings** → **Environments** → **New environment** → Name: **`production`**
+
+Empfohlen:
+
+- **Required reviewers** – mindestens eine Person für Produktions-Deploys.
+- Optional: **Deployment branches** → nur **`main`**.
+
+Entspricht `environment: production` in `.github/workflows/deploy-production.yml` und der Federated Credential mit Entity type **Environment**.
+
+#### Schritt 3: Actions aktivieren
+
+**Settings** → **Actions** → **General**: Actions für das Repository erlauben.
+
+Die Workflows setzen `permissions: id-token: write` bereits in den YAML-Dateien (Voraussetzung für OIDC) – keine zusätzliche manuelle Konfiguration nötig.
+
+#### Schritt 4: Ersten Lauf testen
+
+1. **Ohne Entra:** **Actions** → Workflow **validation** → **Run workflow** (Branch `main`) – prüft Schema/Pester.
+2. **Mit Entra (PR):** Branch + PR mit Änderung unter `config/applications/` → Jobs `call-validation` und optional `what-if-comment` (benötigt Federated Credential **Pull request**).
+3. **Mit Entra (Deploy):** Merge nach `main` → Workflow **deploy-production** → unter **Actions** beim Run **Review deployments** / **Approve** für Environment `production`.
+
+#### Schritt 5: Erfolg prüfen
+
+| Symptom | Typische Ursache |
+| --- | --- |
+| Azure Login / OIDC fehlgeschlagen | Federated Credential Subject passt nicht (Environment `production` / Pull request) |
+| Variable nicht gesetzt | `AZURE_TENANT_ID` oder `GSA_GRAPH_CLIENT_ID` fehlt oder falsch geschrieben |
+| Graph 403 nach Login | Admin consent für Application permissions fehlt |
+| Connector Group nicht gefunden | `spec.connectorGroup` in YAML ≠ Name in Entra (Gruppe manuell anlegen) |
+
+#### Was Sie in GitHub **nicht** anlegen müssen
+
+- Kein `AZURE_CLIENT_SECRET`
+- Kein `AZURE_SUBSCRIPTION_ID` (`allow-no-subscriptions: true` in den Workflows)
+- Kein separates Graph-Secret – Token über OIDC und `az account get-access-token --resource-type ms-graph`
+
+Vollständige Security-Anleitung (Entra + GitHub + Fehlerbilder): `docs/security/authentication-and-permissions.md`
 
 ---
 
