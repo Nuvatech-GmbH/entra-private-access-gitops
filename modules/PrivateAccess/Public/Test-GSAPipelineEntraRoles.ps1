@@ -48,16 +48,22 @@ Details: $($_.Exception.Message)
 "@
     }
 
-    $roleNames = @($rolesResp.value | ForEach-Object { $_.displayName })
-    $templateIds = @($rolesResp.value | ForEach-Object { $_.roleTemplateId })
-    $hasAppAdmin = $templateIds -contains $appAdminTemplateId
-    $hasGsaAdmin = $templateIds -contains $gsaAdminTemplateId
+    $roles = @($rolesResp.value)
+    $roleNames = @($roles | ForEach-Object { $_.displayName })
+    $templateIds = @($roles | ForEach-Object { [string]$_.roleTemplateId } | Where-Object { $_ })
+
+    # memberOf liefert oft displayName, aber roleTemplateId kann leer sein – beides prüfen
+    $hasAppAdmin = ($roleNames -contains 'Application Administrator') -or
+        ($templateIds -contains $appAdminTemplateId)
+    $hasGsaAdmin = ($roleNames -contains 'Global Secure Access Administrator') -or
+        ($templateIds -contains $gsaAdminTemplateId)
 
     Write-GSAStructuredLog -Level 'Information' -CorrelationId $CorrelationId -Message 'Pipeline Directory-Rollen (memberOf).' -Data @{
         servicePrincipalId                 = $sp.id
         servicePrincipalDisplayName        = $sp.displayName
         appId                              = $sp.appId
         directoryRoles                     = $roleNames
+        directoryRoleTemplateIds           = $templateIds
         hasApplicationAdministrator        = $hasAppAdmin
         hasGlobalSecureAccessAdministrator = $hasGsaAdmin
     }
