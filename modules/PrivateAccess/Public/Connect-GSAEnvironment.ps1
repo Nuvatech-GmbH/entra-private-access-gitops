@@ -3,27 +3,33 @@ function Connect-GSAEnvironment {
     .SYNOPSIS
     Stellt eine Microsoft Graph Verbindung für Private Access Automation her.
     .DESCRIPTION
-    Unterstützt:
-    - AzureCli: Token via `az account get-access-token` (empfohlen nach `azure/login` mit OIDC in GitHub Actions)
-    - AccessToken: statischer Token (nur für Notfall-Debugging; bevorzugen Sie AzureCli/OIDC-Pipeline)
-    - Interactive: interaktive Anmeldung (Entwicklerrechner)
+    Standard (ParameterSet AzureCli): Token via `az account get-access-token` nach azure/login (OIDC).
     #>
-    [CmdletBinding()]
+    [CmdletBinding(DefaultParameterSetName = 'AzureCli')]
     param(
-        [Parameter(Mandatory)][string]$TenantId,
-        [ValidateSet('AzureCli','AccessToken','Interactive')][string]$TokenSource = 'AzureCli',
+        [Parameter(Mandatory)]
+        [string]$TenantId,
+
+        [Parameter(ParameterSetName = 'AccessToken', Mandatory = $true)]
+        [SecureString]$GraphAccessToken,
+
+        [Parameter(ParameterSetName = 'Interactive')]
+        [switch]$Interactive,
+
+        [Parameter(ParameterSetName = 'Interactive')]
         [string]$ClientId,
+
+        [Parameter(ParameterSetName = 'Interactive')]
         [string[]]$InteractiveScopes = @(
             'https://graph.microsoft.com/Application.ReadWrite.All',
             'https://graph.microsoft.com/Directory.ReadWrite.All',
             'https://graph.microsoft.com/AppRoleAssignment.ReadWrite.All'
-        ),
-        [SecureString]$AccessToken
+        )
     )
 
     Import-Module Microsoft.Graph.Authentication -ErrorAction Stop | Out-Null
 
-    switch ($TokenSource) {
+    switch ($PSCmdlet.ParameterSetName) {
         'AzureCli' {
             $json = & az account get-access-token --resource-type ms-graph --tenant $TenantId 2>$null
             if ($LASTEXITCODE -ne 0) {
@@ -32,25 +38,30 @@ function Connect-GSAEnvironment {
             $obj = $json | ConvertFrom-Json
             $sec = ConvertTo-SecureString -String $obj.accessToken -AsPlainText -Force
             Connect-MgGraph -TenantId $TenantId -AccessToken $sec -NoWelcome | Out-Null
+            $authLabel = 'AzureCli'
         }
         'AccessToken' {
-            if (-not $AccessToken) { throw 'AccessToken ist erforderlich bei TokenSource=AccessToken.' }
-            Connect-MgGraph -TenantId $TenantId -AccessToken $AccessToken -NoWelcome | Out-Null
+            Connect-MgGraph -TenantId $TenantId -AccessToken $GraphAccessToken -NoWelcome | Out-Null
+            $authLabel = 'AccessToken'
         }
         'Interactive' {
+            if (-not $Interactive) {
+                throw 'Für den interaktiven Modus muss -Interactive gesetzt sein.'
+            }
             if ($ClientId) {
                 Connect-MgGraph -TenantId $TenantId -ClientId $ClientId -Scopes $InteractiveScopes -NoWelcome | Out-Null
             }
             else {
                 Connect-MgGraph -TenantId $TenantId -Scopes $InteractiveScopes -NoWelcome | Out-Null
             }
+            $authLabel = 'Interactive'
         }
     }
 
     $ctx = Get-MgContext
     Write-GSAStructuredLog -Level 'Information' -Message 'Microsoft Graph verbunden.' -Data @{
         tenantId = $ctx.TenantId
-        authType = $TokenSource
+        authType = $authLabel
         clientId = $ctx.ClientId
     }
 }

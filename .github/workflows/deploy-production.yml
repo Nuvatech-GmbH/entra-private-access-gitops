@@ -49,7 +49,7 @@ jobs:
         env:
           GSA_TENANT_ID: ${{ vars.AZURE_TENANT_ID }}
         run: |
-          & (Join-Path "${{ github.workspace }}" "scripts/deploy/Invoke-ProductionDeployment.ps1") -RepoRoot "${{ github.workspace }}" -TokenSource AzureCli
+          & (Join-Path "${{ github.workspace }}" "scripts/deploy/Invoke-ProductionDeployment.ps1") -RepoRoot "${{ github.workspace }}"
 
       - name: Upload deployment bundle (audit)
         if: always()

@@ -11,7 +11,7 @@ Integrationstests richten sich gegen **den produktiven Mandanten** und sollten n
 
 ```powershell
 Import-Module ./modules/PrivateAccess/PrivateAccess.psd1 -Force
-Connect-GSAEnvironment -TenantId $env:GSA_TENANT_ID -TokenSource Interactive
+Connect-GSAEnvironment -TenantId $env:GSA_TENANT_ID -Interactive
 
 Compare-GSAState -ConfigurationPath ./config/applications/<test>.yaml
 Invoke-GSADeployment -ApplicationsPath ./config/applications -WhatIf

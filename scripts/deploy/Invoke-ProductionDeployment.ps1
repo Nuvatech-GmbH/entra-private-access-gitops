@@ -26,7 +26,10 @@ Write-GSAStructuredLog -Level 'Information' -CorrelationId $correlation -Message
     dryRun           = [bool]$DryRun
 }
 
-Connect-GSAEnvironment -TenantId $tenantId -TokenSource $TokenSource
+switch ($TokenSource) {
+    'Interactive' { Connect-GSAEnvironment -TenantId $tenantId -Interactive }
+    default       { Connect-GSAEnvironment -TenantId $tenantId }
+}
 
 $results = Invoke-GSADeployment -ApplicationsPath $ApplicationsPath -DryRun:$DryRun -WhatIf:$WhatIf -RemoveAbsentSegments:$RemoveAbsentSegments -RemoveAbsentAssignments:$RemoveAbsentAssignments -CorrelationId $correlation
 
