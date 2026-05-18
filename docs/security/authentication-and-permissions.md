@@ -59,8 +59,8 @@ Weisen Sie dem **Service Principal** Ihrer Pipeline-App (`sp-gsa-gitops-prod`) z
 
 | Directory-Rolle | Empfehlung |
 | --- | --- |
-| **Application Administrator** | Standard für App-Registrierungen / Application Proxy / Private Access Automation |
-| Global Secure Access Administrator | Optional zusätzlich, wenn weiterhin 403 auf GSA-spezifische Einstellungen |
+| **Application Administrator** | **Erforderlich** für `PATCH` auf `onPremisesPublishing` / Private Access (Graph App Permissions allein reichen nicht) |
+| **Global Secure Access Administrator** | Zusätzlich empfohlen; **allein** typischerweise **nicht** ausreichend für den Application-`PATCH` |
 
 **Pfad:** Microsoft Entra admin center → **Roles and administrators** → **Application Administrator** → **Add assignments** → Mitglied = Enterprise Application Ihrer Pipeline-App (nicht nur die App Registration).
 
@@ -129,7 +129,7 @@ Entspricht `.github/workflows/deploy-production.yml` (`environment: production`)
 | --- | --- |
 | OIDC / Azure Login failed | Federated Credential Subject vs. Branch/Environment/PR |
 | Variable nicht gesetzt | Schreibweise `AZURE_TENANT_ID`, `GSA_GRAPH_CLIENT_ID` |
-| HTTP 403 von Graph | Admin consent, Application vs. Delegated permissions |
+| HTTP 403 von Graph (PATCH `applications/…`) | Admin consent; **Application Administrator** am Pipeline-Service-Principal; halbfertige App löschen + Re-run |
 | Connector Group nicht gefunden | Manuelle Anlage im Portal; exakter Name in YAML `spec.connectorGroup` |
 
 ---
@@ -141,7 +141,7 @@ Für manuelle Korrekturen im Portal (Connectors, Connector Groups):
 - **Application Administrator**
 - **Global Secure Access Administrator**
 
-Die Pipeline benötigt diese **Benutzerrollen** nicht – nur die **Application permissions** an der App Registration.
+Die **Pipeline** (Service Principal) benötigt **dieselben Directory-Rollen** am Enterprise Application – zusätzlich zu den Graph **Application permissions**. Menschliche Admins nutzen dieselben Rollen für Portal-Arbeiten und Break-Glass.
 
 ---
 

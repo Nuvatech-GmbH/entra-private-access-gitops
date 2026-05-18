@@ -1,5 +1,7 @@
 # Onboarding: Neue Engineer:innen
 
+> **Einstieg ohne Git-Vorkenntnisse:** Schritt-für-Schritt-Anleitung (Browser, PR, Pipeline) im [README – Neue Private-Access-Regel](../README.md#neue-private-access-regel-anlegen--schritt-für-schritt).
+
 ## Voraussetzungen
 
 - PowerShell 7 (`pwsh`)
@@ -18,8 +20,8 @@ Das Skript installiert benötigte Module in den CurrentUser-Scope und führt Ana
 
 ## Neue Anwendung hinzufügen
 
-1. Kopieren Sie eine Beispieldatei aus `config/applications/*.example.yaml`.
-2. Entfernen Sie `.example` aus dem Dateinamen (empfohlen: Dateiname = `metadata.name` in Kleinbuchstaben mit Bindestrichen).
+1. Kopieren Sie eine Beispieldatei aus `config/applications/*.example.yaml` (**`.example.yaml` wird nie deployed**).
+2. Speichern Sie als neue Datei **ohne** `.example` (z. B. `pa-team-system.yaml`).
 3. Setzen Sie realistische Werte:
    - `metadata.name` eindeutig (`PA-<TEAM>-<SYSTEM>`)
    - `spec.connectorGroup` exakt wie im Mandanten

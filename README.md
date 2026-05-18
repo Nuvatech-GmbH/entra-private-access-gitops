@@ -1,277 +1,378 @@
 # Microsoft Entra Private Access – Enterprise GitOps
 
-Dieses Repository ist die **Single Source of Truth** für **Microsoft Entra Private Access** (Global Secure Access / Zero Trust Network Access) Anwendungen in **einem** produktiven Microsoft Entra Mandanten. Es kombiniert **deklarative YAML-Konfiguration**, **PowerShell 7 Automatisierung** über **Microsoft Graph** und **GitHub Actions** mit **OIDC**, um Änderungen **governed**, **auditierbar** und **idempotent** auszurollen.
+Dieses Repository ist die **Single Source of Truth** für **Microsoft Entra Private Access** (Global Secure Access / ZTNA) in **einem** produktiven Microsoft-Entra-Mandanten. Sie beschreiben Zugriffsregeln in **YAML-Dateien**; **GitHub Actions** wenden sie automatisch per **Microsoft Graph** im Mandanten an.
 
-> Graph-Hinweis: Die Automatisierung folgt dem offiziellen Microsoft Learn Tutorial inklusive `beta` Endpunkten für Segmente und Connector Groups. Referenz: [Configure Microsoft Entra Private Access using Microsoft Graph APIs](https://learn.microsoft.com/en-us/graph/tutorial-entra-private-access)
+> **Graph:** Die Automatisierung folgt dem [Microsoft Learn Tutorial – Private Access per Graph](https://learn.microsoft.com/en-us/graph/tutorial-entra-private-access) (inkl. `beta`-Endpunkte für Segmente und Connector Groups).
 
 ---
 
 ## Inhaltsverzeichnis
 
-1. [Warum dieses Repository existiert](#warum-dieses-repository-existiert)
-2. [Architektur (Zielbild)](#architektur-zielbild)
-3. [End-to-End Deployment Flow](#end-to-end-deployment-flow)
-4. [Repository-Struktur](#repository-struktur)
-5. [YAML Desired State (`gsa.gitops/v1`)](#yaml-desired-state-gsagitopsv1)
-6. [PowerShell Module](#powershell-module)
-7. [GitHub Actions & OIDC](#github-actions--oidc)
-8. [Validierung, WhatIf und Drift](#validierung-whatif-und-drift)
-9. [Genehmigungen & Branch Protection](#genehmigungen--branch-protection)
-10. [Rollback & Emergency](#rollback--emergency)
-11. [Sicherheit & Least Privilege](#sicherheit--least-privilege)
-12. [Observability](#observability)
-13. [Lokale Entwicklung](#lokale-entwicklung)
-14. [Weiterführende Dokumentation](#weiterführende-dokumentation)
+1. [Kurz erklärt: Was Sie als Engineer tun](#kurz-erklärt-was-sie-als-engineer-tun)
+2. [Git in 2 Minuten (ohne Vorkenntnisse)](#git-in-2-minuten-ohne-vorkenntnisse)
+3. [Neue Private-Access-Regel anlegen – Schritt für Schritt](#neue-private-access-regel-anlegen--schritt-für-schritt)
+4. [Was passiert automatisch in der Pipeline?](#was-passiert-automatisch-in-der-pipeline)
+5. [Was die Pipeline technisch in Entra macht](#was-die-pipeline-technisch-in-entra-macht)
+6. [Voraussetzungen im Mandanten (vor dem ersten Deploy)](#voraussetzungen-im-mandanten-vor-dem-ersten-deploy)
+7. [Berechtigungen der Pipeline (wichtige Erkenntnisse)](#berechtigungen-der-pipeline-wichtige-erkenntnisse)
+8. [Deploy erneut testen / Fehler beheben](#deploy-erneut-testen--fehler-beheben)
+9. [YAML-Referenz (`gsa.gitops/v1`)](#yaml-referenz-gsagitopsv1)
+10. [Architektur & Repository](#architektur--repository)
+11. [Einmalige Einrichtung (Plattform-Team)](#einmalige-einrichtung-plattform-team)
+12. [Weiterführende Dokumentation](#weiterführende-dokumentation)
 
 ---
 
-## Warum dieses Repository existiert
+## Kurz erklärt: Was Sie als Engineer tun
 
-In großen Organisationen skaliert Private Access nicht über „ClickOps“, sondern über:
+| Sie müssen **nicht** | Sie müssen **nur** |
+| --- | --- |
+| Im Entra-Portal klicken, um Apps anzulegen | Eine **YAML-Datei** unter `config/applications/` anlegen oder ändern |
+| Git auf der Kommandozeile beherrschen | Einen **Pull Request** in GitHub erstellen und mergen lassen (geht auch **nur im Browser**) |
+| Die Pipeline manuell starten (nach Merge) | PR-Checks abwarten; nach Merge ggf. **Production** in Actions **freigeben** |
 
-- **Git als System of Record** (Reviews, Blame, Tags, Releases)
-- **Automatisierte Gates** vor jeder Mutation im Mandanten
-- **klare Ownership** pro Anwendung (`metadata.owners`)
-- **Nachvollziehbarkeit** über Tickets (`metadata.changeReference`) und Pipeline-Artefakte
+**Ablauf in einem Satz:** YAML beschreibt die gewünschte Private-Access-App → Review im PR → Merge nach `main` → Pipeline legt oder aktualisiert die App im Mandanten.
 
-Dieses Repository ist bewusst **ohne** künstliche Dev/Test/Prod-Mandanten im Git modelliert. Stattdessen gibt es **einen** produktiven Zielmandanten und **mehrstufige Sicherheit** (Validierung, WhatIf/Drift, Reviews, Environment Protection).
+**Wichtig:** Dateien mit Endung **`.example.yaml`** sind **nur Vorlagen** – sie werden **nicht** deployed. Produktive Dateien heißen z. B. `pa-mein-team-rdp-server01.yaml` (ohne `.example`).
 
 ---
 
-## Architektur (Zielbild)
+## Git in 2 Minuten (ohne Vorkenntnisse)
+
+| Begriff | Bedeutung für Sie |
+| --- | --- |
+| **Repository (Repo)** | Dieses Projekt auf GitHub – enthält alle YAML-Regeln und Automatisierung |
+| **Branch** | Eine Arbeitskopie Ihrer Änderungen, z. B. `feature/pa-neues-rdp` – **nicht** sofort produktiv |
+| **Pull Request (PR)** | Antrag: „Bitte meine Änderungen in den offiziellen Stand (`main`) übernehmen“ |
+| **Merge** | PR wird angenommen → Ihre YAML landet auf Branch **`main`** → **Deploy-Pipeline** kann starten |
+| **`main`** | Der genehmigte Produktionsstand – nur hieraus wird in den Entra-Mandanten geschrieben |
+
+Sie arbeiten fast immer so: **neuer Branch → Datei ändern → PR → Review → Merge**. Sie müssen keine `git`-Befehle kennen, wenn Sie alles über die **GitHub-Weboberfläche** machen (siehe nächstes Kapitel).
+
+---
+
+## Neue Private-Access-Regel anlegen – Schritt für Schritt
+
+### Was Sie vorher klären sollten
+
+| Thema | Beispiel | Wer legt es an? |
+| --- | --- | --- |
+| **Connector Group** (Name exakt) | `Office-Gersthofen` | Meist Netzwerk/Plattform im Portal |
+| **Ziel** (IP, FQDN, Ports) | `10.0.1.1`, TCP `3389` | Sie in YAML |
+| **Berechtigte Gruppe** | `SEC-GSA-PA-OFFICE-RDP-GERSTHOFEN` | Identity-Team in Entra |
+| **Ticket / Change** | `CHG-12345` | Sie in `metadata.changeReference` |
+| **Eindeutiger App-Name** | `PA-NUVATECH-OFFICE-RDP-GERSTHOFEN` | Sie in `metadata.name` (Konvention `PA-…`) |
+
+Ohne existierende **Connector Group** und **Sicherheitsgruppe** schlägt der Deploy später fehl (nach dem App-Anlegen).
+
+---
+
+### Schritt 1: Vorlage kopieren (GitHub im Browser)
+
+1. Öffnen Sie das Repository auf GitHub.
+2. Gehen Sie zu **`config/applications/`**.
+3. Öffnen Sie z. B. `contoso-hr-portal.example.yaml` (oder eine andere `*.example.yaml`).
+4. Klicken Sie **⋯** → **Open file** → oben rechts **⋯** → **Copy raw file** / oder: **Add file** → **Create new file**.
+5. Dateiname (produktiv, **ohne** `.example`):
+
+   `pa-nuvatech-office-rdp-gersthofen.yaml`
+
+   (Kleinbuchstaben und Bindestriche sind üblich; der **Anzeigename** in Entra kommt aus `metadata.name`.)
+
+6. Inhalt anpassen – **Minimalbeispiel RDP** (aus dem produktiven Muster im Repo):
+
+```yaml
+apiVersion: gsa.gitops/v1
+kind: PrivateAccessApplication
+metadata:
+  name: PA-NUVATECH-OFFICE-RDP-GERSTHOFEN
+  description: RDP-Zugriff Office Gersthofen (TCP/3389) über Connector Group Office-Gersthofen.
+  owners:
+    - ihre.email@nuvatech.com
+  changeReference: CHG-12345-001
+  tags:
+    site: gersthofen
+    protocol: rdp
+spec:
+  applicationType: enterprise
+  isAccessibleViaZTNAClient: true
+  connectorGroup: Office-Gersthofen
+  destinations:
+    - host: "10.0.1.1"
+      type: ipAddress
+      ports: ["3389"]
+      protocol: tcp
+  assignments:
+    - principalType: Group
+      principalName: SEC-GSA-PA-OFFICE-RDP-GERSTHOFEN
+```
+
+**Tipps:**
+
+- `metadata.name` = exakter **Display Name** der App in Entra (eindeutig, Großbuchstaben mit `PA-` empfohlen).
+- `connectorGroup` muss **zeichengenau** dem Namen in Entra entsprechen.
+- `principalId` (GUID) ist **stabiler** als `principalName` – wenn Sie die Gruppen-ID haben, nutzen Sie:
+
+```yaml
+  assignments:
+    - principalType: Group
+      principalId: "aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee"
+```
+
+7. Unten: **Commit changes…** → Commit auf einem **neuen Branch** (GitHub schlägt z. B. `feature/pa-office-rdp` vor) → **Propose changes** / **Create pull request**.
+
+---
+
+### Schritt 2: Pull Request – automatische Prüfung
+
+Nach dem Öffnen des PR laufen **ohne Ihr Zutun** u. a.:
+
+| Check | Was wird geprüft? |
+| --- | --- |
+| **validation** | YAML-Syntax, JSON-Schema, Namenskonvention `PA-…`, keine Duplikate |
+| **pull-request-validation** | Wie oben + optional **WhatIf/Drift** (liest Mandant, **schreibt nicht**) |
+
+- **Grün** = aus Repository-Sicht in Ordnung.
+- **Rot** = Fehlermeldung im Job-Log lesen (oft Tippfehler in `connectorGroup`, Schema, Name).
+
+Reviewer (laut `CODEOWNERS`) geben den PR frei.
+
+---
+
+### Schritt 3: Merge → automatischer Produktions-Deploy
+
+1. PR **Merge** nach `main` (Button in GitHub).
+2. Unter **Actions** erscheint Workflow **`deploy-production`** (Start durch Push auf `main`, nur wenn sich u. a. `config/applications/**` geändert hat).
+3. Falls **Environment `production`** mit **Required reviewers** konfiguriert ist:
+   - Run öffnen → **Review deployments** → **Approve and deploy**.
+4. Job **Deploy** führt `Invoke-ProductionDeployment.ps1` aus → für jede YAML (ohne `*.example.yaml`) wird der Mandant **angepasst**.
+
+**Erfolg prüfen:**
+
+- Actions: Workflow **grün**, Log z. B. `Verarbeite pa-nuvatech-office-rdp-gersthofen.yaml` **ohne** `403 Forbidden`.
+- Entra → **Enterprise applications** → App `PA-NUVATECH-OFFICE-RDP-GERSTHOFEN` mit Private-Access-Segment und Zuweisung.
+
+Optional danach (Plattform): `metadata.graphApplicationId` in der YAML setzen (Object-ID der App aus Entra) – stabilisiert spätere Updates. Die Pipeline funktioniert auch ohne (Lookup per `displayName`).
+
+---
+
+### Alternative: Änderung mit Git auf dem Laptop
+
+```bash
+git clone https://github.com/Nuvatech-GmbH/entra-private-access-gitops.git
+cd entra-private-access-gitops
+git checkout -b feature/pa-meine-neue-app
+cp config/applications/contoso-hr-portal.example.yaml config/applications/pa-meine-neue-app.yaml
+# Datei bearbeiten
+pwsh ./scripts/validate/Invoke-GSAValidation.ps1   # optional, lokal
+git add config/applications/pa-meine-neue-app.yaml
+git commit -m "feat: Private Access für Mein-System"
+git push -u origin feature/pa-meine-neue-app
+```
+
+Danach in GitHub den PR öffnen (Link erscheint oft in der Terminal-Ausgabe).
+
+---
+
+### Bestehende Regel ändern
+
+1. Datei unter `config/applications/<ihre-datei>.yaml` bearbeiten (PR wie oben).
+2. Nach Merge: Pipeline **aktualisiert** die bestehende App (Segmente, Zuweisungen, Connector Group).
+3. Ports oder Zuweisungen ändern = höheres Risiko → Security-Review einplanen.
+
+---
+
+## Was passiert automatisch in der Pipeline?
 
 ```mermaid
 flowchart LR
-  Eng[Engineer:innen] -->|PR| GitHub[GitHub: YAML + Reviews]
-  GitHub -->|validation.yml| Val[Schema + Governance + Pester]
-  GitHub -->|pull-request-validation| WhatIf[Graph Read: Drift Report]
-  GitHub -->|merge main| Dep[deploy-production.yml]
-  Dep -->|OIDC| EntraId[Microsoft Entra App Registration]
-  EntraId -->|Microsoft Graph| Tenant[(Produktiver Entra Tenant)]
-  Tenant -->|Audit Logs| SOC[SOC / Monitoring]
+  A[YAML in PR] --> B[validation / PR-Checks]
+  B --> C{Merge nach main?}
+  C -->|Ja| D[deploy-production]
+  D --> E[OIDC Login Entra]
+  E --> F[Graph: App anlegen/aktualisieren]
+  F --> G[Entra Mandant]
 ```
 
-### Schichtenmodul
+| Phase | Workflow | Schreibt in Entra? |
+| --- | --- | --- |
+| PR | `pull-request-validation.yml` | **Nein** (Validierung; WhatIf nur Lesen) |
+| Nach Merge | `deploy-production.yml` | **Ja** (Produktion) |
 
-```mermaid
-flowchart TB
-  YAML[config/applications/*.yaml] --> ValS[JSON Schema + Invoke-GSAValidation.ps1]
-  ValS --> PS[modules/PrivateAccess]
-  PS --> GC[Private/GraphClient.ps1]
-  GC --> MG[Microsoft.Graph.Authentication\nInvoke-MgGraphRequest]
-  MG --> API[(Graph beta/v1)]
-```
+**Manueller Deploy-Start** ist normalerweise **nicht** nötig. Ausnahmen:
 
-Details: `docs/architecture/overview.md`
+- **Erneut testen** ohne neuen Commit: **Actions** → **deploy-production** → letzten Run → **Re-run all jobs**.
+- Neuer Commit auf `main` (auch leerer Commit), der Pfade unter `config/applications/**` berührt, startet den Workflow ebenfalls.
+
+`deploy-production` hat **keinen** „Run workflow“-Knopf (kein `workflow_dispatch`) – dafür **Re-run** oder Push auf `main`.
 
 ---
 
-## End-to-End Deployment Flow
+## Was die Pipeline technisch in Entra macht
 
-```mermaid
-sequenceDiagram
-  participant Dev as Engineer
-  participant GH as GitHub PR
-  participant CI as PR Pipeline
-  participant Main as main Branch
-  participant Prod as Environment production
-  participant Entra as Microsoft Entra
+Für **jede** produktive YAML-Datei (kein `*.example.yaml`):
 
-  Dev->>GH: YAML ändern + PR
-  GH->>CI: Schema/Naming/Duplikate/Pester
-  CI->>Entra: Optional Drift/WhatIf (Read)
-  Dev->>GH: Review + Merge
-  Main->>Prod: deploy-production.yml
-  Prod->>Entra: Idempotent reconcile (Write)
-```
+| Schritt | Graph (vereinfacht) | Bedeutung |
+| --- | --- | --- |
+| 1 | App existiert? (Name oder `graphApplicationId`) | Entscheidung Create vs. Update |
+| 2 | `POST …/applicationTemplates/…/instantiate` | Neue **Enterprise Application** aus Microsoft-Template |
+| 3 | `PATCH …/applications/{id}` mit `onPremisesPublishing` | Typ `enterprise` / `quickAccess`, **ZTNA-Client** (`isAccessibleViaZTNAClient`) |
+| 4 | `PUT …/applications/{id}/connectorGroup/$ref` | Verbindung zur **Connector Group** |
+| 5 | `POST …/applicationSegments` | **Ziele** (IP/FQDN, Ports, Protokoll) |
+| 6 | `POST …/servicePrincipals/…/appRoleAssignments` | **Zuweisung** an User/Gruppe |
+
+Bei **Update** werden fehlende Segmente/Zuweisungen ergänzt; optionale Flags können entfernte Einträge auch löschen (`-RemoveAbsentSegments` / `-RemoveAbsentAssignments` – Standard-Deploy nutzt konservative Defaults).
 
 ---
 
-## Repository-Struktur
+## Voraussetzungen im Mandanten (vor dem ersten Deploy)
 
-Die vollständige Erklärung aller Ordner finden Sie in `docs/repository-structure.md` (Tabelle inkl. Zweck von `modules`, `scripts`, `schemas`, `tests`, `docs`, `build`, `.github`).
+**Einmalig durch Plattform / Identity** (nicht durch jede YAML-Änderung):
+
+| Komponente | Beschreibung |
+| --- | --- |
+| App Registration `sp-gsa-gitops-prod` | Pipeline-Identität, OIDC zu GitHub |
+| Graph **Application permissions** + Admin Consent | `Application.ReadWrite.All`, `AppRoleAssignment.ReadWrite.All`, ggf. `Directory.Read.All` |
+| **Directory-Rollen** am **Service Principal** der Pipeline | Siehe nächstes Kapitel – **ohne diese Rollen typischer 403 beim PATCH** |
+| GitHub Variables | `AZURE_TENANT_ID`, `GSA_GRAPH_CLIENT_ID` |
+| Environment **`production`** | Optional: Freigabe vor Deploy |
+| Federated Credentials | Subject für `environment:production` und `pull_request` |
+| Connector + **Connector Group** | Pro Standort/Netz, Name wie in YAML |
+| Entra ID / GSA-Lizenzen | Private Access im Tenant freigeschaltet |
 
 ---
 
-## YAML Desired State (`gsa.gitops/v1`)
+## Berechtigungen der Pipeline (wichtige Erkenntnisse)
 
-Jede Datei unter `config/applications/` beschreibt **genau eine** Anwendung.
+### Graph Application Permissions allein reichen oft nicht
 
-Kernelemente:
+In der Praxis gilt für **Private Access** / `onPremisesPublishing` (ZTNA-Flag, App-Typ):
 
-- `metadata.name` – entspricht dem `displayName` der erzeugten App (eindeutig).
-- `metadata.owners` – Verantwortliche (E-Mail).
-- `metadata.changeReference` – externes Ticket / RFC / CHG.
-- `metadata.graphApplicationId` – optional, für Importe und stabile Bindung.
-- `spec.applicationType` – `enterprise` (nonwebapp) oder `quickAccess` (quickaccessapp).
-- `spec.connectorGroup` – **Name** der Application Proxy Connector Group (wird per Graph aufgelöst).
-- `spec.destinations` – Liste aus Zielen mit `host`, `type`, `ports`, `protocol`.
-- `spec.assignments` – `principalId` (empfohlen) oder `principalName` (nur User/Group, Auflösung zur Laufzeit).
+| Was funktioniert mit nur `Application.ReadWrite.All` | Was oft **403 Forbidden** liefert |
+| --- | --- |
+| Graph-Verbindung (OIDC) | `PATCH` mit `onPremisesPublishing` / `isAccessibleViaZTNAClient` |
+| App aus Template **anlegen** (`instantiate`) | Vollständige Private-Access-Konfiguration |
 
-Beispiele: `config/applications/contoso-hr-portal.example.yaml`, `config/applications/contoso-fileserver.example.yaml`.
+Microsoft dokumentiert für das [offizielle Tutorial](https://learn.microsoft.com/en-us/graph/tutorial-entra-private-access) getrennte **Entra-Directory-Rollen** – für Service Principals müssen diese dem **Enterprise Application** (Service Principal) der Pipeline zugewiesen werden, **nicht** nur API Permissions auf der App Registration setzen.
+
+### Empfohlene Directory-Rollen am Pipeline-Service-Principal
+
+| Rolle | Zweck |
+| --- | --- |
+| **Application Administrator** | App-Objekt, Application Proxy / Private Access – **in der Praxis für den PATCH erforderlich** |
+| **Global Secure Access Administrator** | GSA-spezifische Einstellungen – **allein reichte in Tests nicht** für den `PATCH`; **zusätzlich** zu Application Administrator sinnvoll |
+
+**Zuweisung:** Entra → **Roles and administrators** → Rolle wählen → **Add assignment** → Mitglied = **Service principal** → `sp-gsa-gitops-prod` (Enterprise App).
+
+**Häufiger Fehler:** Rolle nur der App Registration oder einem User zugewiesen, nicht dem **Service Principal**.
+
+Nach Rollenänderung: **10–15 Minuten** warten, halbfertige Apps aus **Enterprise applications** löschen, Pipeline **Re-run**.
+
+### Least Privilege – realistische Einordnung
+
+- Reine **Graph Permissions ohne Directory-Rolle** sind für vollautomatisches Private Access derzeit **nicht zuverlässig** (Microsoft-API prüft Entra-Rollen, Fehlercode u. a. `NotAdminRoleNoEnoughCustomPermission`).
+- **Engere** Rolle als Application Administrator gibt es für diesen API-Pfad praktisch nicht; **PIM** (zeitlich begrenzte Aktivierung der Rolle) ist ein möglicher Kompromiss.
+- **Global Secure Access Administrator** allein ersetzt **Application Administrator** für den dokumentierten Ablauf **nicht**.
+
+Details: `docs/security/authentication-and-permissions.md`
+
+---
+
+## Deploy erneut testen / Fehler beheben
+
+| Situation | Vorgehen |
+| --- | --- |
+| Deploy nach Rollen-Fix | Halbfertige App im Portal löschen → **Actions** → **deploy-production** → **Re-run all jobs** |
+| Nach fehlgeschlagenem Lauf | App `PA-…` in **Enterprise applications** entfernen, sonst „kaputte“ Teilkonfiguration |
+| Graph **403** auf `PATCH …/applications/…` | Admin Consent prüfen; **Application Administrator** am SP; Wartezeit nach Rollenzuweisung |
+| Connector Group nicht gefunden | Name in YAML = Name in Entra; Gruppe manuell angelegt? |
+| Gruppe für Zuweisung | `principalName` muss existieren oder `principalId` nutzen |
+| OIDC / Login failed | Federated Credential Subject = `repo:…:environment:production` |
+| Variables | `AZURE_TENANT_ID`, `GSA_GRAPH_CLIENT_ID` exakt in GitHub |
+
+Mehr: `docs/troubleshooting/common-issues.md`
+
+---
+
+## YAML-Referenz (`gsa.gitops/v1`)
+
+Jede produktive Datei: `config/applications/<name>.yaml` ( **nicht** `*.example.yaml` ).
+
+| Feld | Pflicht | Beschreibung |
+| --- | --- | --- |
+| `metadata.name` | Ja | Eindeutiger App-Name in Entra (`PA-TEAM-SYSTEM`) |
+| `metadata.owners` | Ja | E-Mail-Verantwortliche |
+| `metadata.changeReference` | Ja | Ticket / CHG / RFC |
+| `metadata.graphApplicationId` | Nein | GUID für stabile Bindung nach erstem Deploy |
+| `spec.applicationType` | Ja | `enterprise` oder `quickAccess` |
+| `spec.isAccessibleViaZTNAClient` | Ja | `true` für Private Access über GSA-Client |
+| `spec.connectorGroup` | Ja | **Name** der Connector Group im Mandanten |
+| `spec.destinations[]` | Ja | `host`, `type` (`ipAddress`, `fqdn`, …), `ports`, `protocol` |
+| `spec.assignments[]` | Ja | `principalType` + `principalId` oder `principalName` |
+
+**Beispiel-Vorlagen (werden nicht deployed):**
+
+- `config/applications/contoso-hr-portal.example.yaml`
+- `config/applications/contoso-fileserver.example.yaml`
+
+**Produktives Beispiel im Repo:** `config/applications/pa-nuvatech-office-rdp-gersthofen.yaml`
 
 JSON Schema: `schemas/private-access-application.schema.json`
 
 ---
 
-## PowerShell Module
+## Architektur & Repository
 
-### `modules/Common`
-
-Strukturierte Logs (`Write-GSAStructuredLog`), Korrelation (`New-GSACorrelationId`), Retry (`Invoke-GSARetryableOperation`).
-
-### `modules/PrivateAccess`
-
-Öffentliche Cmdlets (Auswahl):
-
-| Cmdlet | Zweck |
-| --- | --- |
-| `Connect-GSAEnvironment` | Graph Session (Azure CLI Token nach OIDC, interaktiv, optional AccessToken) |
-| `Get-GSAPrivateAccessApplication` | Lookup per `graphApplicationId` oder `displayName` |
-| `New-GSAPrivateAccessApplication` | Erstellt App via Template + Segmente + Zuweisungen |
-| `Set-GSAPrivateAccessApplication` | Idempotentes Update (optional entfernen abwesender Segmente/Zuweisungen) |
-| `Remove-GSAPrivateAccessApplication` | Löscht Application (Break-Glass) |
-| `Compare-GSAState` | Drift zwischen YAML und Mandant |
-| `Test-GSAConfiguration` | Schema-Check einer Datei |
-| `Invoke-GSADeployment` | Ordner-basiertes Deployment mit `-DryRun` / `-WhatIf` |
-
-> **Microsoft Entra PowerShell** kann ergänzend für Directory-Szenarien genutzt werden; die Kernpfade sind absichtlich **Microsoft Graph**-basiert, um API-Stabilität und Portabilität zu maximieren.
-
----
-
-## GitHub Actions & OIDC
+```mermaid
+flowchart LR
+  Eng[Engineer] -->|PR| GitHub[GitHub YAML + Review]
+  GitHub -->|validation| Val[Schema + Tests]
+  GitHub -->|merge main| Dep[deploy-production]
+  Dep -->|OIDC| SP[sp-gsa-gitops-prod]
+  SP -->|Microsoft Graph| Tenant[(Entra Tenant)]
+```
 
 | Workflow | Trigger | Zweck |
 | --- | --- | --- |
-| `validation.yml` | `workflow_call`, `workflow_dispatch` | PSScriptAnalyzer, YAML/Schema, Pester, Artefakte |
-| `pull-request-validation.yml` | PR zu `main` | Ruft `validation.yml` auf + optional Drift/WhatIf + PR-Kommentar |
-| `deploy-production.yml` | Push `main` (Pfade gefiltert) | Produktives Reconcile nach Environment-Genehmigung |
+| `validation.yml` | Manuell / `workflow_call` | PSScriptAnalyzer, Schema, Pester |
+| `pull-request-validation.yml` | PR → `main` | Validierung + optional WhatIf |
+| `deploy-production.yml` | Push `main` (gefilterte Pfade) | Produktives Reconcile |
 
-### Konfiguration: Microsoft Entra (Kurzüberblick)
+**Ordner (Auswahl):**
 
-Voraussetzung **vor** den GitHub-Schritten:
-
-1. App Registration (z. B. `sp-gsa-gitops-prod`) im Zielmandanten.
-2. **Federated Credentials** (GitHub Actions) – Subjects müssen zu den Workflows passen (siehe Tabelle unten).
-3. **Microsoft Graph → Application permissions** (nicht Delegated): `Application.ReadWrite.All`, `AppRoleAssignment.ReadWrite.All`, optional `Directory.Read.All` (oder `User.Read.All` + `Group.Read.All` bei `principalName` in YAML).
-4. **Grant admin consent** im Mandanten.
-
-| Workflow im Repo | Empfohlener Entity type in Entra | Subject (Beispiel) |
-| --- | --- | --- |
-| `deploy-production.yml` | **Environment** → `production` | `repo:<org>/<repo>:environment:production` |
-| `pull-request-validation.yml` (WhatIf) | **Pull request** | `repo:<org>/<repo>:pull_request` |
-
-Details zu Graph Permissions: `docs/security/authentication-and-permissions.md`
-
-### Konfiguration in GitHub (Schritt für Schritt)
-
-Nach Abschluss der App Registration in Entra konfigurieren Sie **nur Repository-Variablen und ein Environment** – **kein** `AZURE_CLIENT_SECRET`.
-
-#### Schritt 1: Repository-Variablen
-
-Pfad: Repository → **Settings** → **Secrets and variables** → **Actions** → Tab **Variables** → **New repository variable**
-
-| Variable | Wert | Quelle (Entra Portal) |
-| --- | --- | --- |
-| `AZURE_TENANT_ID` | Directory (Tenant) ID | App Registration → **Overview** → **Directory (tenant) ID** |
-| `GSA_GRAPH_CLIENT_ID` | Application (client) ID | App Registration → **Overview** → **Application (client) ID** |
-
-Die Namen müssen **exakt** so heißen (Workflows verwenden `vars.AZURE_TENANT_ID` und `vars.GSA_GRAPH_CLIENT_ID`).
-
-#### Schritt 2: Environment `production`
-
-Pfad: **Settings** → **Environments** → **New environment** → Name: **`production`**
-
-Empfohlen:
-
-- **Required reviewers** – mindestens eine Person für Produktions-Deploys.
-- Optional: **Deployment branches** → nur **`main`**.
-
-Entspricht `environment: production` in `.github/workflows/deploy-production.yml` und der Federated Credential mit Entity type **Environment**.
-
-#### Schritt 3: Actions aktivieren
-
-**Settings** → **Actions** → **General**: Actions für das Repository erlauben.
-
-Die Workflows setzen `permissions: id-token: write` bereits in den YAML-Dateien (Voraussetzung für OIDC) – keine zusätzliche manuelle Konfiguration nötig.
-
-#### Schritt 4: Ersten Lauf testen
-
-1. **Ohne Entra:** **Actions** → Workflow **validation** → **Run workflow** (Branch `main`) – prüft Schema/Pester.
-2. **Mit Entra (PR):** Branch + PR mit Änderung unter `config/applications/` → Jobs `call-validation` und optional `what-if-comment` (benötigt Federated Credential **Pull request**).
-3. **Mit Entra (Deploy):** Merge nach `main` → Workflow **deploy-production** → unter **Actions** beim Run **Review deployments** / **Approve** für Environment `production`.
-
-#### Schritt 5: Erfolg prüfen
-
-| Symptom | Typische Ursache |
+| Pfad | Inhalt |
 | --- | --- |
-| Azure Login / OIDC fehlgeschlagen | Federated Credential Subject passt nicht (Environment `production` / Pull request) |
-| Variable nicht gesetzt | `AZURE_TENANT_ID` oder `GSA_GRAPH_CLIENT_ID` fehlt oder falsch geschrieben |
-| Graph 403 nach Login | Admin consent für Application permissions fehlt |
-| Connector Group nicht gefunden | `spec.connectorGroup` in YAML ≠ Name in Entra (Gruppe manuell anlegen) |
+| `config/applications/` | Ihre gewünschten Private-Access-Apps (YAML) |
+| `modules/PrivateAccess/` | PowerShell → Graph |
+| `scripts/deploy/` | Produktions-Deploy-Skript |
+| `scripts/validate/` | PR-Validierung |
+| `.github/workflows/` | Pipeline-Definitionen |
 
-#### Was Sie in GitHub **nicht** anlegen müssen
+Ausführlich: `docs/repository-structure.md`, `docs/architecture/overview.md`
 
-- Kein `AZURE_CLIENT_SECRET`
-- Kein `AZURE_SUBSCRIPTION_ID` (`allow-no-subscriptions: true` in den Workflows)
-- Kein separates Graph-Secret – Token über OIDC und `az account get-access-token --resource-type ms-graph`
-
-Vollständige Security-Anleitung (Entra + GitHub + Fehlerbilder): `docs/security/authentication-and-permissions.md`
-
----
-
-## Validierung, WhatIf und Drift
-
-- **PR Phase (ohne Writes)**: `scripts/validate/Invoke-GSAValidation.ps1` prüft Schema, Naming (`PA-...`), Duplikate auf Ziel-Signatur-Ebene und Assignment-Plausibilität.
-- **WhatIf / Drift**: `scripts/utils/Export-GSAWhatIfReport.ps1` erzeugt JSON mit `Compare-GSAState` Ergebnissen (Graph Reads).
-- **Merge / Prod**: `scripts/deploy/Invoke-ProductionDeployment.ps1` führt `Invoke-GSADeployment` aus.
-
----
-
-## Genehmigungen & Branch Protection
-
-Empfohlene Kombination:
-
-- Branch Protection auf `main` (PR required, Status Checks required)
-- `CODEOWNERS` für `config/applications/**`
-- GitHub Environment `production` als operative Freigabe **zusätzlich** zum Code Review
-
-Governance-Modell: `docs/governance/model.md`
-
----
-
-## Rollback & Emergency
-
-- **Standard**: Git Revert + erneutes Deployment (Git bleibt Source of Truth).
-- **Emergency**: siehe `docs/operations/runbook.md` (Break-Glass, Drift-Bereinigung).
-
----
-
-## Sicherheit & Least Privilege
-
-- Keine Secrets im Repository.
-- OIDC statt Client Secrets.
-- App Permissions minimal halten (siehe Tabelle in `docs/security/authentication-and-permissions.md`).
-
----
-
-## Observability
-
-- JSON Logs mit `correlationId` pro Lauf.
-- GitHub Step Summary in `Invoke-ProductionDeployment.ps1` (Tabelle pro Datei).
-- Konzept für Log Analytics / Sentinel: `docs/architecture/overview.md` und `docs/operations/runbook.md`.
-
----
-
-## Lokale Entwicklung
+**PowerShell (lokal testen ohne Entra-Schreiben):**
 
 ```powershell
-git clone <repo>
+git clone https://github.com/Nuvatech-GmbH/entra-private-access-gitops.git
 cd entra-private-access-gitops
 pwsh ./build/Invoke-LocalCI.ps1
 ```
 
-Das Skript installiert u. a. `powershell-yaml`, `Pester`, `PSScriptAnalyzer`, `Microsoft.Graph.Authentication` in den CurrentUser-Scope.
+---
+
+## Einmalige Einrichtung (Plattform-Team)
+
+Kurzcheckliste – Details in `docs/security/authentication-and-permissions.md`:
+
+1. App Registration `sp-gsa-gitops-prod` im Zielmandanten.
+2. Federated Credentials: **Environment** `production` + **Pull request**.
+3. Graph **Application permissions** + **Grant admin consent**.
+4. Directory-Rollen am **Service Principal**: mindestens **Application Administrator** (+ empfohlen **Global Secure Access Administrator**).
+5. GitHub Variables: `AZURE_TENANT_ID`, `GSA_GRAPH_CLIENT_ID`.
+6. GitHub Environment **`production`** (optional Required reviewers, Branch `main`).
+7. Branch Protection + `CODEOWNERS` für `config/applications/**`.
+
+**Nicht nötig:** `AZURE_CLIENT_SECRET`, Azure Subscription für dieses Repo.
 
 ---
 
@@ -279,19 +380,16 @@ Das Skript installiert u. a. `powershell-yaml`, `Pester`, `PSScriptAnalyzer`, `M
 
 | Thema | Datei |
 | --- | --- |
-| Ordner & Zweck | `docs/repository-structure.md` |
-| Architektur | `docs/architecture/overview.md` |
+| Security / OIDC / Rollen | `docs/security/authentication-and-permissions.md` |
+| Troubleshooting (403, Connector, …) | `docs/troubleshooting/common-issues.md` |
+| Onboarding Engineers | `docs/onboarding/engineer-guide.md` |
 | Governance | `docs/governance/model.md` |
-| Security / Graph Permissions | `docs/security/authentication-and-permissions.md` |
-| Onboarding | `docs/onboarding/engineer-guide.md` |
-| Troubleshooting | `docs/troubleshooting/common-issues.md` |
-| Betrieb / Runbooks | `docs/operations/runbook.md` |
-| FAQ | `docs/FAQ.md` |
-| Roadmap | `docs/roadmap.md` |
+| Runbook / Rollback | `docs/operations/runbook.md` |
 | Beispiel-Change | `docs/examples/sample-change.md` |
+| FAQ | `docs/FAQ.md` |
 
 ---
 
 ## Support-Hinweis
 
-Dieses Repository ist als **Unternehmens-Blueprint** gedacht: Organisationsspezifische Teams, Variablen und Policies müssen Sie in GitHub und Entra einmalig konfigurieren (`CODEOWNERS`, Branch Protection, Federated Credentials).
+Dieses Repository ist ein **Unternehmens-Blueprint**: `CODEOWNERS`, Branch Protection, Federated Credentials und Entra-Rollen müssen einmalig zur Organisation passen konfiguriert werden. Für fachliche Änderungen an Zugriffsregeln reicht in der Regel der Weg **YAML → PR → Merge** – ohne tiefes Git- oder Portal-Know-how.
