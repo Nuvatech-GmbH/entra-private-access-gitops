@@ -55,8 +55,21 @@ function Invoke-GSAGraphBetaRequest {
         return Invoke-MgGraphRequest @params
     }
     catch {
-        if ($_.Exception.Message -match '\b403\b|Forbidden|Authorization_RequestDenied') {
-            throw "Microsoft Graph verweigerte die Operation ($Method $RelativeUri). Prüfen Sie Application permissions (Application.ReadWrite.All, AppRoleAssignment.ReadWrite.All) und Admin Consent für die Pipeline-App."
+        $detail = $_.Exception.Message
+        if ($_.ErrorDetails -and $_.ErrorDetails.Message) {
+            $detail += " | $($_.ErrorDetails.Message)"
+        }
+
+        if ($detail -match '\b403\b|Forbidden|Authorization_RequestDenied|insufficient privileges') {
+            throw @"
+Microsoft Graph verweigerte die Operation ($Method $RelativeUri).
+Details: $detail
+
+Typische Ursachen für Private Access (onPremisesPublishing):
+1) Application permissions fehlen oder Admin Consent fehlt: Application.ReadWrite.All, AppRoleAssignment.ReadWrite.All
+2) Der Service Principal der Pipeline-App braucht oft zusätzlich die Entra-Directory-Rolle 'Application Administrator' (nicht nur Graph App-Permissions)
+3) Die Ziel-App wurde von einem anderen Principal angelegt – ggf. App 'PA-NUVATECH-OFFICE-RDP-GERSTHOFEN' im Portal löschen und Deploy erneut ausführen
+"@
         }
         throw
     }

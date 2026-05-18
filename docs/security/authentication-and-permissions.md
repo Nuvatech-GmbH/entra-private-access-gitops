@@ -51,6 +51,21 @@ Engere Alternative zu `Directory.Read.All`: `User.Read.All` + `Group.Read.All`, 
 
 Anschließend: **Grant admin consent for &lt;Tenant&gt;**.
 
+### 1.4 Entra Directory-Rolle für die Pipeline (häufig erforderlich)
+
+Für **Private Access**-Eigenschaften (`onPremisesPublishing`, ZTNA, Application Segments) reichen in der Praxis oft **nur** Graph Application permissions **nicht** aus.
+
+Weisen Sie dem **Service Principal** Ihrer Pipeline-App (`sp-gsa-gitops-prod`) zusätzlich eine Directory-Rolle zu:
+
+| Directory-Rolle | Empfehlung |
+| --- | --- |
+| **Application Administrator** | Standard für App-Registrierungen / Application Proxy / Private Access Automation |
+| Global Secure Access Administrator | Optional zusätzlich, wenn weiterhin 403 auf GSA-spezifische Einstellungen |
+
+**Pfad:** Microsoft Entra admin center → **Roles and administrators** → **Application Administrator** → **Add assignments** → Mitglied = Enterprise Application Ihrer Pipeline-App (nicht nur die App Registration).
+
+> Das Microsoft Learn Tutorial nutzt interaktive Admin-Konten mit diesen Rollen. Service Principals benötigen dieselbe Effektivberechtigung über **App permissions + Directory role assignment**.
+
 ### 1.4 Wie die Pipeline authentifiziert
 
 Die Workflows nutzen `azure/login@v2` mit:

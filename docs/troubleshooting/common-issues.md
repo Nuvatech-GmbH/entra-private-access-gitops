@@ -25,6 +25,18 @@
 Install-Module powershell-yaml -Scope CurrentUser
 ```
 
+## Graph 403 beim Deploy (PATCH applications/…)
+
+**Symptom:** `Microsoft Graph verweigerte die Operation (PATCH https://graph.microsoft.com/beta/applications/...)`
+
+**Checkliste:**
+
+1. **Admin consent** für `Application.ReadWrite.All` und `AppRoleAssignment.ReadWrite.All` auf `sp-gsa-gitops-prod`
+2. **Directory-Rolle** dem Service Principal der Pipeline zuweisen: **Application Administrator** (siehe `docs/security/authentication-and-permissions.md`)
+3. **Teilweise angelegte App löschen:** Entra → Enterprise applications → `PA-NUVATECH-OFFICE-RDP-GERSTHOFEN` → löschen → Deploy erneut (legt App neu an)
+4. **Connector Group** `Office-Gersthofen` muss existieren
+5. **Gruppe** aus YAML (`SEC-GSA-PA-OFFICE-RDP-GERSTHOFEN`) muss existieren oder `principalId` setzen
+
 ## OIDC Login in GitHub schlägt fehl
 
 - Federated Credential Subject passt nicht zu `ref`, `environment` oder `pull_request`.
