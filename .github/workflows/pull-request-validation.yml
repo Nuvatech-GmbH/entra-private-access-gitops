@@ -31,10 +31,10 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Setup PowerShell
-        uses: actions/setup-powershell@v1
-        with:
-          version: '7.4'
+      - name: Verify PowerShell 7
+        shell: pwsh
+        run: |
+          if ($PSVersionTable.PSVersion.Major -lt 7) { throw 'PowerShell 7 erforderlich.' }
 
       - name: Azure Login (OIDC)
         uses: azure/login@v2

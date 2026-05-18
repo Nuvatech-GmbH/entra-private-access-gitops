@@ -14,10 +14,13 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Setup PowerShell
-        uses: actions/setup-powershell@v1
-        with:
-          version: '7.4'
+      - name: Verify PowerShell 7
+        shell: pwsh
+        run: |
+          Write-Host "PowerShell $($PSVersionTable.PSVersion) on $($PSVersionTable.OS)"
+          if ($PSVersionTable.PSVersion.Major -lt 7) {
+            throw 'PowerShell 7 ist erforderlich (auf ubuntu-latest vorinstalliert).'
+          }
 
       - name: Install dependencies
         shell: pwsh
