@@ -33,6 +33,8 @@ else {
     Initialize-GSAGraphSession -EntraTenantId $tenantId -AuthenticationMode AzureCli
 }
 
+Test-GSAPipelineEntraRoles -CorrelationId $correlation
+
 $results = Invoke-GSADeployment -ApplicationsPath $ApplicationsPath -DryRun:$DryRun -WhatIf:$WhatIf -RemoveAbsentSegments:$RemoveAbsentSegments -RemoveAbsentAssignments:$RemoveAbsentAssignments -CorrelationId $correlation
 
 if ($env:GITHUB_STEP_SUMMARY) {

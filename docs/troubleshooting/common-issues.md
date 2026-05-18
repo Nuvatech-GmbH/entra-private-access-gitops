@@ -27,6 +27,16 @@ Install-Module powershell-yaml -Scope CurrentUser
 
 ## Graph 403 beim Deploy (PATCH applications/…)
 
+### Welche App darf gelöscht werden?
+
+| App | Löschen vor Re-Deploy? |
+| --- | --- |
+| `PA-NUVATECH-OFFICE-RDP-GERSTHOFEN` (Ziel-App) | **Ja** – halbfertige Private-Access-App |
+| `sp-gsa-gitops-prod` (Pipeline) | **Nein** – bricht OIDC und Rollenzuweisung |
+
+Das erneute Anlegen von `PA-NUVATECH-…` durch die Pipeline ist **normal** und bedeutet nicht, dass die Pipeline-App fehlt.
+
+
 **Symptom:** `Microsoft Graph verweigerte die Operation (PATCH https://graph.microsoft.com/beta/applications/...)`
 
 **Checkliste:**

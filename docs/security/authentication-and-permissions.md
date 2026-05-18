@@ -45,7 +45,7 @@ Alternativ nur zum schnellen Test: **Branch** `main` – dann funktionieren PR-W
 | --- | --- |
 | `Application.ReadWrite.All` | Apps, `onPremisesPublishing`, Application Segments |
 | `AppRoleAssignment.ReadWrite.All` | Zuweisungen an Service Principals |
-| `Directory.Read.All` | Optional: Auflösung von `principalName` in YAML |
+| `Directory.Read.All` | Auflösung von `principalName` in YAML; **empfohlen** für Pipeline-Rollenprüfung vor Deploy |
 
 Engere Alternative zu `Directory.Read.All`: `User.Read.All` + `Group.Read.All`, wenn Sie nur UPN/Gruppennamen auflösen.
 

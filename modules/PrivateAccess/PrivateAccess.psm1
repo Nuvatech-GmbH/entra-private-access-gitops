@@ -16,5 +16,6 @@ Export-ModuleMember -Function @(
     'Remove-GSAPrivateAccessApplication',
     'Compare-GSAState',
     'Test-GSAConfiguration',
-    'Invoke-GSADeployment'
+    'Invoke-GSADeployment',
+    'Test-GSAPipelineEntraRoles'
 )

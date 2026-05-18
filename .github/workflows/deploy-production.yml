@@ -38,17 +38,18 @@ jobs:
           tenant-id: ${{ vars.AZURE_TENANT_ID }}
           allow-no-subscriptions: true
 
-      - name: Install modules
-        shell: pwsh
-        run: |
-          Set-PSRepository PSGallery -InstallationPolicy Trusted
-          Install-Module powershell-yaml, Microsoft.Graph.Authentication -Scope CurrentUser -Force
-
       - name: Deploy (idempotent reconcile)
         shell: pwsh
         env:
           GSA_TENANT_ID: ${{ vars.AZURE_TENANT_ID }}
         run: |
+          Set-PSRepository PSGallery -InstallationPolicy Trusted
+          foreach ($m in @('powershell-yaml', 'Microsoft.Graph.Authentication')) {
+            if (-not (Get-Module -ListAvailable -Name $m)) {
+              Install-Module $m -Scope CurrentUser -Force -AllowClobber
+            }
+          }
+          Import-Module Microsoft.Graph.Authentication -ErrorAction Stop
           & (Join-Path "${{ github.workspace }}" "scripts/deploy/Invoke-ProductionDeployment.ps1") -RepoRoot "${{ github.workspace }}"
 
       - name: Upload deployment bundle (audit)

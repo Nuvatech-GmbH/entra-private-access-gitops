@@ -26,6 +26,32 @@ function Assert-MgConnected {
     }
 }
 
+function Get-GSAGraphErrorFromRecord {
+    param([System.Management.Automation.ErrorRecord]$ErrorRecord)
+
+    $parts = [System.Collections.Generic.List[string]]::new()
+    if ($ErrorRecord.Exception.Message) {
+        $parts.Add([string]$ErrorRecord.Exception.Message) | Out-Null
+    }
+    if ($ErrorRecord.ErrorDetails -and $ErrorRecord.ErrorDetails.Message) {
+        $parts.Add([string]$ErrorRecord.ErrorDetails.Message) | Out-Null
+        try {
+            $json = $ErrorRecord.ErrorDetails.Message | ConvertFrom-Json -ErrorAction Stop
+            if ($json.error) {
+                return @{
+                    code    = [string]$json.error.code
+                    message = [string]$json.error.message
+                    raw     = ($parts -join ' | ')
+                }
+            }
+        }
+        catch {
+            # kein Graph-JSON
+        }
+    }
+    return @{ code = ''; message = ''; raw = ($parts -join ' | ') }
+}
+
 function Invoke-GSAGraphBetaRequest {
     [CmdletBinding()]
     param(
@@ -50,25 +76,26 @@ function Invoke-GSAGraphBetaRequest {
         $params['Headers'] = $Headers
     }
 
-    Import-Module Microsoft.Graph.Authentication -ErrorAction Stop | Out-Null
+    if (-not (Get-Module -Name 'Microsoft.Graph.Authentication')) {
+        Import-Module Microsoft.Graph.Authentication -ErrorAction Stop | Out-Null
+    }
     try {
         return Invoke-MgGraphRequest @params
     }
     catch {
-        $detail = $_.Exception.Message
-        if ($_.ErrorDetails -and $_.ErrorDetails.Message) {
-            $detail += " | $($_.ErrorDetails.Message)"
-        }
+        $graphErr = Get-GSAGraphErrorFromRecord -ErrorRecord $_
+        $detail = $graphErr.raw
+        $codeLine = if ($graphErr.code) { "Graph error.code: $($graphErr.code)`nGraph error.message: $($graphErr.message)`n`n" } else { '' }
 
-        if ($detail -match '\b403\b|Forbidden|Authorization_RequestDenied|insufficient privileges') {
+        if ($detail -match '\b403\b|Forbidden|Authorization_RequestDenied|insufficient privileges|NotAdminRole') {
             throw @"
 Microsoft Graph verweigerte die Operation ($Method $RelativeUri).
-Details: $detail
+${codeLine}Details: $detail
 
 Typische Ursachen für Private Access (onPremisesPublishing):
-1) Application permissions fehlen oder Admin Consent fehlt: Application.ReadWrite.All, AppRoleAssignment.ReadWrite.All
-2) Der Service Principal der Pipeline-App braucht oft zusätzlich die Entra-Directory-Rolle 'Application Administrator' (nicht nur Graph App-Permissions)
-3) Die Ziel-App wurde von einem anderen Principal angelegt – ggf. App 'PA-NUVATECH-OFFICE-RDP-GERSTHOFEN' im Portal löschen und Deploy erneut ausführen
+1) Dem Pipeline-Service-Principal fehlt die Directory-Rolle 'Application Administrator' (Enterprise Application sp-gsa-gitops-prod, nicht nur GSA Administrator).
+2) Application permissions ohne Admin Consent: Application.ReadWrite.All, AppRoleAssignment.ReadWrite.All; für Rollenprüfung Directory.Read.All.
+3) Halbfertige Ziel-App löschen (Enterprise applications → PA-NUVATECH-OFFICE-RDP-GERSTHOFEN). Die Pipeline-App sp-gsa-gitops-prod nicht löschen.
 "@
         }
         throw
