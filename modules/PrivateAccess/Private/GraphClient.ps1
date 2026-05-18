@@ -6,7 +6,7 @@ $script:GSA_GraphBaseUri = 'https://graph.microsoft.com/beta'
 function Assert-MgConnected {
     $ctx = Get-MgContext -ErrorAction SilentlyContinue
     if (-not $ctx) {
-        throw 'Microsoft Graph ist nicht verbunden. Führen Sie zuerst Connect-GSAEnvironment aus.'
+        throw 'Microsoft Graph ist nicht verbunden. Führen Sie zuerst Initialize-GSAGraphSession aus.'
     }
 }
 

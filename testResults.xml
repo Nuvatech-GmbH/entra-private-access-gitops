@@ -1,34 +1,34 @@
 ﻿<?xml version="1.0" encoding="utf-8" standalone="no"?>
-<test-results xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="nunit_schema_2.5.xsd" name="Pester" total="5" errors="0" failures="0" not-run="0" inconclusive="0" ignored="0" skipped="0" invalid="0" date="2026-05-14" time="21:39:18">
-  <environment nunit-version="2.5.8.0" cwd="/Users/florian.ried/Documents/git/entra-private-access-gitops" platform="Darwin" user="florian.ried" clr-version="9.0.4" user-domain="" os-version="25.3.0" machine-name="Mac" />
+<test-results xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="nunit_schema_2.5.xsd" name="Pester" total="5" errors="0" failures="0" not-run="0" inconclusive="0" ignored="0" skipped="0" invalid="0" date="2026-05-18" time="20:38:01">
+  <environment cwd="/Users/florian.ried/Documents/git/entra-private-access-gitops" user="florian.ried" machine-name="Mac" nunit-version="2.5.8.0" os-version="25.3.0" user-domain="" clr-version="9.0.4" platform="Darwin" />
   <culture-info current-culture="de-DE" current-uiculture="de-DE" />
-  <test-suite type="TestFixture" name="Pester" executed="True" result="Success" success="True" time="0.2514" asserts="0" description="Pester">
+  <test-suite type="TestFixture" name="Pester" executed="True" result="Success" success="True" time="0.2822" asserts="0" description="Pester">
     <results>
-      <test-suite type="TestFixture" name="/Users/florian.ried/Documents/git/entra-private-access-gitops/tests/unit/Common.Tests.ps1" executed="True" result="Success" success="True" time="0.1387" asserts="0" description="/Users/florian.ried/Documents/git/entra-private-access-gitops/tests/unit/Common.Tests.ps1">
+      <test-suite type="TestFixture" name="/Users/florian.ried/Documents/git/entra-private-access-gitops/tests/unit/Common.Tests.ps1" executed="True" result="Success" success="True" time="0.1357" asserts="0" description="/Users/florian.ried/Documents/git/entra-private-access-gitops/tests/unit/Common.Tests.ps1">
         <results>
-          <test-suite type="TestFixture" name="Common Modul" executed="True" result="Success" success="True" time="0.0449" asserts="0" description="Common Modul">
+          <test-suite type="TestFixture" name="Common Modul" executed="True" result="Success" success="True" time="0.0433" asserts="0" description="Common Modul">
             <results>
-              <test-case description="erzeugt Korrelations-IDs" name="Common Modul.erzeugt Korrelations-IDs" time="0.0336" asserts="0" success="True" result="Success" executed="True" />
-              <test-case description="liest boolesche Umgebungsvariablen" name="Common Modul.liest boolesche Umgebungsvariablen" time="0.0031" asserts="0" success="True" result="Success" executed="True" />
+              <test-case description="erzeugt Korrelations-IDs" name="Common Modul.erzeugt Korrelations-IDs" time="0.032" asserts="0" success="True" result="Success" executed="True" />
+              <test-case description="liest boolesche Umgebungsvariablen" name="Common Modul.liest boolesche Umgebungsvariablen" time="0.0027" asserts="0" success="True" result="Success" executed="True" />
             </results>
           </test-suite>
         </results>
       </test-suite>
-      <test-suite type="TestFixture" name="/Users/florian.ried/Documents/git/entra-private-access-gitops/tests/unit/Deployment.Tests.ps1" executed="True" result="Success" success="True" time="0.0839" asserts="0" description="/Users/florian.ried/Documents/git/entra-private-access-gitops/tests/unit/Deployment.Tests.ps1">
+      <test-suite type="TestFixture" name="/Users/florian.ried/Documents/git/entra-private-access-gitops/tests/unit/Deployment.Tests.ps1" executed="True" result="Success" success="True" time="0.1193" asserts="0" description="/Users/florian.ried/Documents/git/entra-private-access-gitops/tests/unit/Deployment.Tests.ps1">
         <results>
-          <test-suite type="TestFixture" name="Invoke-GSADeployment (DryRun)" executed="True" result="Success" success="True" time="0.0638" asserts="0" description="Invoke-GSADeployment (DryRun)">
+          <test-suite type="TestFixture" name="Invoke-GSADeployment (DryRun)" executed="True" result="Success" success="True" time="0.1012" asserts="0" description="Invoke-GSADeployment (DryRun)">
             <results>
-              <test-case description="validiert alle YAMLs ohne Graph" name="Invoke-GSADeployment (DryRun).validiert alle YAMLs ohne Graph" time="0.063" asserts="0" success="True" result="Success" executed="True" />
+              <test-case description="validiert alle YAMLs ohne Graph" name="Invoke-GSADeployment (DryRun).validiert alle YAMLs ohne Graph" time="0.0997" asserts="0" success="True" result="Success" executed="True" />
             </results>
           </test-suite>
         </results>
       </test-suite>
-      <test-suite type="TestFixture" name="/Users/florian.ried/Documents/git/entra-private-access-gitops/tests/unit/Schema.Tests.ps1" executed="True" result="Success" success="True" time="0.0288" asserts="0" description="/Users/florian.ried/Documents/git/entra-private-access-gitops/tests/unit/Schema.Tests.ps1">
+      <test-suite type="TestFixture" name="/Users/florian.ried/Documents/git/entra-private-access-gitops/tests/unit/Schema.Tests.ps1" executed="True" result="Success" success="True" time="0.0271" asserts="0" description="/Users/florian.ried/Documents/git/entra-private-access-gitops/tests/unit/Schema.Tests.ps1">
         <results>
-          <test-suite type="TestFixture" name="YAML Schema Validierung" executed="True" result="Success" success="True" time="0.0201" asserts="0" description="YAML Schema Validierung">
+          <test-suite type="TestFixture" name="YAML Schema Validierung" executed="True" result="Success" success="True" time="0.0223" asserts="0" description="YAML Schema Validierung">
             <results>
-              <test-case description="validiert Beispiel HR Portal" name="YAML Schema Validierung.validiert Beispiel HR Portal" time="0.0096" asserts="0" success="True" result="Success" executed="True" />
-              <test-case description="validiert Beispiel Fileserver" name="YAML Schema Validierung.validiert Beispiel Fileserver" time="0.0098" asserts="0" success="True" result="Success" executed="True" />
+              <test-case description="validiert Beispiel HR Portal" name="YAML Schema Validierung.validiert Beispiel HR Portal" time="0.0116" asserts="0" success="True" result="Success" executed="True" />
+              <test-case description="validiert Beispiel Fileserver" name="YAML Schema Validierung.validiert Beispiel Fileserver" time="0.0101" asserts="0" success="True" result="Success" executed="True" />
             </results>
           </test-suite>
         </results>

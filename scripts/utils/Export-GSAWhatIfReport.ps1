@@ -15,7 +15,7 @@ if ([string]::IsNullOrWhiteSpace($TenantId)) {
     throw 'GSA_TENANT_ID ist nicht gesetzt.'
 }
 
-Connect-GSAEnvironment -TenantId $TenantId
+Initialize-GSAGraphSession -EntraTenantId $TenantId
 
 $report = [System.Collections.Generic.List[object]]::new()
 foreach ($f in Get-ChildItem -LiteralPath $ApplicationsPath -Filter '*.yaml' -File) {

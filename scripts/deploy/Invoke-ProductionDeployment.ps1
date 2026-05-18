@@ -27,10 +27,10 @@ Write-GSAStructuredLog -Level 'Information' -CorrelationId $correlation -Message
 }
 
 if ($TokenSource -eq 'Interactive') {
-    Connect-GSAEnvironment -TenantId $tenantId -AuthenticationMode Interactive
+    Initialize-GSAGraphSession -EntraTenantId $tenantId -AuthenticationMode Interactive
 }
 else {
-    Connect-GSAEnvironment -TenantId $tenantId -AuthenticationMode AzureCli
+    Initialize-GSAGraphSession -EntraTenantId $tenantId -AuthenticationMode AzureCli
 }
 
 $results = Invoke-GSADeployment -ApplicationsPath $ApplicationsPath -DryRun:$DryRun -WhatIf:$WhatIf -RemoveAbsentSegments:$RemoveAbsentSegments -RemoveAbsentAssignments:$RemoveAbsentAssignments -CorrelationId $correlation

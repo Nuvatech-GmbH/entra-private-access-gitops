@@ -12,6 +12,7 @@
     )
     NestedModules     = @()
     FunctionsToExport = @(
+        'Initialize-GSAGraphSession',
         'Connect-GSAEnvironment',
         'Get-GSAPrivateAccessApplication',
         'New-GSAPrivateAccessApplication',
