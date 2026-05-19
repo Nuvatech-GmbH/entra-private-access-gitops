@@ -33,6 +33,7 @@ Vier YAML-Dateien unter `config/applications/` – je **ein Zieltyp**, **keine �
 
 ## Deploy
 
+0. **Keine Duplikate:** Pro `metadata.name` (z. B. `PA-DEMO-SEGMENT-FQDN`) darf im Mandanten nur **eine** Application existieren. Nach Testläufen alle Doppelungen + Papierkorb bereinigen, sonst bricht der Deploy mit „Mehrere Entra-Applications mit displayName …“ ab.
 1. PR/Merge nach `main` → `deploy-production` deployt **alle** `pa-demo-*.yaml` (nicht `*.example.yaml`).
 2. Bei Fehler `Invalid_AppSegments_NonwebApp_Duplicate`: Konflikt-App aus Log + Papierkorb löschen.
 3. Nach Erfolg optional `metadata.graphApplicationId` in jede YAML eintragen (stabile Updates).

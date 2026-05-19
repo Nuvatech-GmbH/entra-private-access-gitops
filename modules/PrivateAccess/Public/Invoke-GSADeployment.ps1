@@ -27,8 +27,9 @@ function Invoke-GSADeployment {
         }
 
         $exists = $null
-        if ($doc.metadata.graphApplicationId) {
-            $exists = Get-GSAPrivateAccessApplication -ApplicationId ([string]$doc.metadata.graphApplicationId) -CorrelationId $CorrelationId
+        $graphAppId = [string]$doc.metadata.graphApplicationId
+        if (-not [string]::IsNullOrWhiteSpace($graphAppId)) {
+            $exists = Get-GSAPrivateAccessApplication -ApplicationId $graphAppId.Trim() -CorrelationId $CorrelationId
         }
         else {
             $exists = Get-GSAPrivateAccessApplication -DisplayName ([string]$doc.metadata.name) -CorrelationId $CorrelationId

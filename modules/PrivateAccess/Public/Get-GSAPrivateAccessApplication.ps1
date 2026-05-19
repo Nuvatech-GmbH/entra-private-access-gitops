@@ -14,16 +14,13 @@ function Get-GSAPrivateAccessApplication {
         throw 'Geben Sie ApplicationId oder DisplayName an.'
     }
 
-    if ($ApplicationId) {
-        $app = Get-GSAApplicationById -ApplicationId $ApplicationId
+    if (-not [string]::IsNullOrWhiteSpace($ApplicationId)) {
+        $app = Get-GSAApplicationById -ApplicationId $ApplicationId.Trim()
     }
     else {
-        $apps = Get-GSAApplicationByDisplayName -DisplayName $DisplayName
-        if ($apps.Count -eq 0) { return $null }
-        if ($apps.Count -gt 1) {
-            Write-GSAStructuredLog -Level 'Warning' -CorrelationId $CorrelationId -Message 'Mehrere Applications mit gleichem displayName gefunden; es wird die erste ID verwendet.' -Data @{ displayName = $DisplayName; ids = ($apps | ForEach-Object id) }
-        }
-        $app = Get-GSAApplicationById -ApplicationId $apps[0].id
+        $objectId = Resolve-GSAApplicationObjectIdByDisplayName -DisplayName $DisplayName -CorrelationId $CorrelationId
+        if (-not $objectId) { return $null }
+        $app = Get-GSAApplicationById -ApplicationId $objectId
     }
 
     $spFilter = [uri]::EscapeDataString("appId eq '$($app.appId)'")

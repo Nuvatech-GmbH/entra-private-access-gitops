@@ -16,14 +16,14 @@ function Set-GSAPrivateAccessApplication {
     $name = [string]$meta.name
 
     $applicationId = $null
-    if ($meta.graphApplicationId) {
+    if ($meta.graphApplicationId -and -not [string]::IsNullOrWhiteSpace([string]$meta.graphApplicationId)) {
         $applicationId = [string]$meta.graphApplicationId
     }
     else {
-        $hits = Get-GSAApplicationByDisplayName -DisplayName $name
-        if ($hits.Count -eq 0) { throw "Application '$name' wurde nicht gefunden. Verwenden Sie New-GSAPrivateAccessApplication oder setzen Sie metadata.graphApplicationId." }
-        if ($hits.Count -gt 1) { throw "Mehrdeutiger Application-Name '$name' ($($hits.Count) Treffer). Setzen Sie metadata.graphApplicationId." }
-        $applicationId = [string]$hits[0].id
+        $applicationId = Resolve-GSAApplicationObjectIdByDisplayName -DisplayName $name -CorrelationId $CorrelationId
+        if (-not $applicationId) {
+            throw "Application '$name' wurde nicht gefunden. Verwenden Sie New-GSAPrivateAccessApplication oder setzen Sie metadata.graphApplicationId."
+        }
     }
 
     if (-not $PSCmdlet.ShouldProcess($applicationId, "Reconcile Private Access application '$name'")) {

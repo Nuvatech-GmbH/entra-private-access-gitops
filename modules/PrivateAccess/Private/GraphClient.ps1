@@ -467,6 +467,35 @@ function Get-GSAApplicationByDisplayName {
     return @($resp.value)
 }
 
+function Resolve-GSAApplicationObjectIdByDisplayName {
+    <#
+    .SYNOPSIS
+    Eindeutige Application objectId zu displayName; wirft bei mehreren Treffern mit gültiger id.
+    #>
+    param(
+        [Parameter(Mandatory)][string]$DisplayName,
+        [Parameter(Mandatory)][string]$CorrelationId
+    )
+
+    $apps = @(Get-GSAApplicationByDisplayName -DisplayName $DisplayName | Where-Object {
+            $_.id -and -not [string]::IsNullOrWhiteSpace([string]$_.id)
+        })
+
+    if ($apps.Count -eq 0) {
+        return $null
+    }
+
+    if ($apps.Count -gt 1) {
+        $ids = ($apps | ForEach-Object { [string]$_.id }) -join ', '
+        throw @"
+Mehrere Entra-Applications mit displayName '$DisplayName' (objectIds: $ids).
+Bereinigen Sie Duplikate unter Unternehmensanwendungen / App-Registrierungen (inkl. Papierkorb) oder setzen Sie metadata.graphApplicationId in der YAML auf die gewünschte objectId.
+"@
+    }
+
+    return [string]$apps[0].id
+}
+
 function Get-GSAApplicationById {
     param([Parameter(Mandatory)][string]$ApplicationId)
     $uri = "https://graph.microsoft.com/beta/applications/$ApplicationId"

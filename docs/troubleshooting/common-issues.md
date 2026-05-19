@@ -18,8 +18,14 @@ Vollständige Checkliste: [`docs/operations/portal-configuration-after-deploy.md
 
 ## `Mehrdeutiger Application-Name`
 
-- `metadata.name` / `displayName` ist nicht eindeutig.
-- Setzen Sie `metadata.graphApplicationId` in YAML für eine stabile Bindung.
+- `metadata.name` / `displayName` ist nicht eindeutig (häufig nach mehreren fehlgeschlagenen Demo-/Test-Deploys).
+- **Lösung:** Entra → Unternehmensanwendungen → alle Treffer mit gleichem Namen (z. B. `PA-DEMO-SEGMENT-FQDN`) löschen, Papierkorb leeren; nur **eine** App behalten oder alle entfernen und Pipeline neu laufen lassen.
+- Stabil: `metadata.graphApplicationId` in YAML auf die **objectId** der gewünschten App setzen.
+- Die Pipeline **wählt nicht mehr „die erste“** bei Duplikaten – Deploy bricht mit klarer Fehlermeldung ab (keine leere ApplicationId mehr).
+
+## `Cannot bind argument to parameter 'ApplicationId' because it is an empty string`
+
+Ursache: Mehrere Applications mit gleichem `displayName`, erste Treffer ohne gültige `id`. Siehe **Mehrdeutiger Application-Name** oben.
 
 ## Graph `429 Too Many Requests`
 
