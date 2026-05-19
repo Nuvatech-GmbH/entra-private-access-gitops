@@ -2,7 +2,7 @@ apiVersion: gsa.gitops/v1
 kind: PrivateAccessApplication
 metadata:
   name: PA-DEMO-SEGMENT-IPADDRESS
-  description: "Demo IP-Adresse – Host des Private-Access-Connectors (Win-Server 192.168.178.42), RDP 3389."
+  description: "Demo IP-Adresse – Connector-Win-Server 192.168.178.42, RDP 3389 (Graph speichert oft als ipRangeCidr/32)."
   owners:
     - platform@nuvatech.com
   changeReference: DEMO-SEGMENT-IPADDRESS-001

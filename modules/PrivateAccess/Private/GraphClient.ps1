@@ -564,6 +564,69 @@ function Find-GSAApplicationSegmentBySignature {
     return $null
 }
 
+function Get-GSAGraphHostMatchKeys {
+    param([Parameter(Mandatory)][string]$HostValue)
+
+    $keys = [System.Collections.Generic.HashSet[string]]::new([StringComparer]::OrdinalIgnoreCase)
+    $h = $HostValue.Trim().ToLowerInvariant()
+    if ([string]::IsNullOrWhiteSpace($h)) { return @() }
+    [void]$keys.Add($h)
+
+    if ($h -match '^(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})$') {
+        [void]$keys.Add("$($Matches[1])/32")
+    }
+    elseif ($h -match '^(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})/32$') {
+        [void]$keys.Add($Matches[1])
+    }
+
+    return @($keys)
+}
+
+function Test-GSASegmentMatchesDestinationSpec {
+    param(
+        [Parameter(Mandatory)]$Segment,
+        [Parameter(Mandatory)][hashtable]$Destination
+    )
+
+    if (([string]$Segment.protocol).ToLowerInvariant() -ne ([string]$Destination.protocol).ToLowerInvariant()) {
+        return $false
+    }
+
+    $specPorts = @((Get-GSAGraphPortListFromSpec -Ports $Destination.ports) | ForEach-Object {
+            ConvertTo-GSAGraphPortRange -Port ([string]$_)
+        } | Sort-Object)
+    $segPorts = @($Segment.ports | ForEach-Object { ConvertTo-GSAGraphPortRange -Port ([string]$_) } | Sort-Object)
+    if (($specPorts -join ',') -ne ($segPorts -join ',')) {
+        return $false
+    }
+
+    $specType = ([string]$Destination.type).ToLowerInvariant()
+    if ($specType -eq 'fqdn' -or ([string]$Segment.destinationType).ToLowerInvariant() -eq 'fqdn') {
+        return ([string]$Segment.destinationHost).Trim().ToLowerInvariant() -eq ([string]$Destination.host).Trim().ToLowerInvariant()
+    }
+
+    $specKeys = Get-GSAGraphHostMatchKeys -HostValue ([string]$Destination.host)
+    $segKeys = Get-GSAGraphHostMatchKeys -HostValue ([string]$Segment.destinationHost)
+    foreach ($key in $specKeys) {
+        if ($segKeys -contains $key) { return $true }
+    }
+    return $false
+}
+
+function Find-GSAApplicationSegmentMatchingDestination {
+    param(
+        [Parameter(Mandatory)][string]$ApplicationId,
+        [Parameter(Mandatory)][hashtable]$Destination
+    )
+
+    foreach ($s in (Get-GSAApplicationSegments -ApplicationId $ApplicationId)) {
+        if (Test-GSASegmentMatchesDestinationSpec -Segment $s -Destination $Destination) {
+            return $s
+        }
+    }
+    return $null
+}
+
 function Get-GSASegmentIdFromGraphResponse {
     param($Response)
 
@@ -613,10 +676,13 @@ function Get-GSAGraphSegmentDestinationCandidates {
         }
     }
 
-    & $addCandidate $hostValue $typeValue
-
+    # Einzel-IPv4: Graph/Portal legen oft ipRangeCidr/32 an – zuerst probieren, YAML-Typ ipAddress bleibt gültig
     if ($typeValue -eq 'ipAddress' -and $hostValue -match '^(?:\d{1,3}\.){3}\d{1,3}$') {
         & $addCandidate "$hostValue/32" 'ipRangeCidr'
+        & $addCandidate $hostValue 'ipAddress'
+    }
+    else {
+        & $addCandidate $hostValue $typeValue
     }
 
     return @($candidates)
@@ -662,12 +728,14 @@ function Add-GSAApplicationSegment {
     )
 
     $sigDesired = Get-GSADestinationSignatureFromSpec -Destination $Destination
-    $existingSegment = Find-GSAApplicationSegmentBySignature -ApplicationId $ApplicationId -Signature $sigDesired
+    $existingSegment = Find-GSAApplicationSegmentMatchingDestination -ApplicationId $ApplicationId -Destination $Destination
     if ($existingSegment) {
         Write-GSAStructuredLog -Level 'Information' -CorrelationId $CorrelationId -Message 'Application Segment existiert bereits – übersprungen.' -Data @{
-            applicationId = $ApplicationId
-            signature     = $sigDesired
-            segmentId     = $existingSegment.id
+            applicationId   = $ApplicationId
+            signature       = $sigDesired
+            segmentId       = $existingSegment.id
+            graphHost       = $existingSegment.destinationHost
+            graphType       = $existingSegment.destinationType
         }
         return $existingSegment
     }
@@ -700,7 +768,10 @@ function Add-GSAApplicationSegment {
                     $resolved = $created
                 }
                 else {
-                    $found = Wait-GSAApplicationSegmentBySignature -ApplicationId $ApplicationId -Signature $sigDesired
+                    $found = Find-GSAApplicationSegmentMatchingDestination -ApplicationId $ApplicationId -Destination $Destination
+                    if (-not $found) {
+                        $found = Wait-GSAApplicationSegmentBySignature -ApplicationId $ApplicationId -Signature $sigDesired
+                    }
                     if ($found) {
                         $resolved = $found
                         $segmentId = [string]$found.id
@@ -728,11 +799,13 @@ function Add-GSAApplicationSegment {
             }
             catch {
                 $errors.Add("$($variant.label) [$($dest.destinationType) $($dest.destinationHost)]: $(Get-GSAGraphErrorSummary -ErrorRecord $_)") | Out-Null
-                $found = Find-GSAApplicationSegmentBySignature -ApplicationId $ApplicationId -Signature $sigDesired
+                $found = Find-GSAApplicationSegmentMatchingDestination -ApplicationId $ApplicationId -Destination $Destination
                 if ($found) {
                     Write-GSAStructuredLog -Level 'Information' -CorrelationId $CorrelationId -Message 'Application Segment nach fehlgeschlagenem POST bereits vorhanden (idempotent).' -Data @{
                         segmentId = $found.id
                         variant   = $variant.label
+                        graphType = $found.destinationType
+                        graphHost = $found.destinationHost
                     }
                     return $found
                 }
@@ -740,7 +813,10 @@ function Add-GSAApplicationSegment {
         }
     }
 
-    $late = Find-GSAApplicationSegmentBySignature -ApplicationId $ApplicationId -Signature $sigDesired
+    $late = Find-GSAApplicationSegmentMatchingDestination -ApplicationId $ApplicationId -Destination $Destination
+    if (-not $late) {
+        $late = Find-GSAApplicationSegmentBySignature -ApplicationId $ApplicationId -Signature $sigDesired
+    }
     if ($late) {
         Write-GSAStructuredLog -Level 'Information' -CorrelationId $CorrelationId -Message 'Application Segment nach allen Versuchen per GET gefunden.' -Data @{ segmentId = $late.id }
         return $late

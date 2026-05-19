@@ -42,6 +42,19 @@ Describe 'Get-GSASegmentSignature' {
     }
 }
 
+Describe 'Test-GSASegmentMatchesDestinationSpec' {
+    It 'erkennt ipAddress-YAML wenn Graph ipRangeCidr/32 gespeichert hat' {
+        $dest = @{ host = '192.168.178.42'; type = 'ipAddress'; ports = @('3389'); protocol = 'tcp' }
+        $segment = [pscustomobject]@{
+            destinationHost = '192.168.178.42/32'
+            destinationType = 'ipRangeCidr'
+            ports           = @('3389-3389')
+            protocol        = 'tcp'
+        }
+        Test-GSASegmentMatchesDestinationSpec -Segment $segment -Destination $dest | Should -BeTrue
+    }
+}
+
 Describe 'Get-GSASegmentDuplicateConflictFromText' {
     It 'parst conflictingApplication aus Graph-Fehlertext' {
         $sample = @'
