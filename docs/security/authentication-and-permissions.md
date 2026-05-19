@@ -43,9 +43,9 @@ Alternativ nur zum schnellen Test: **Branch** `main` – dann funktionieren PR-W
 
 | Permission | Zweck |
 | --- | --- |
-| `Application.ReadWrite.All` | App-Registrierungen, Template `instantiate`, Segmente |
-| **`OnPremisesPublishingProfiles.ReadWrite.All`** | **Pflicht** für Private Access / `onPremisesPublishing` per App-only-Token (OIDC) |
-| `AppRoleAssignment.ReadWrite.All` | Zuweisungen an Service Principals |
+| **`Application.ReadWrite.All`** | **Pflicht:** Template `instantiate`, **Application Segments** (POST) |
+| **`OnPremisesPublishingProfiles.ReadWrite.All`** | **Pflicht:** `onPremisesPublishing` / ZTNA per App-only-Token |
+| **`AppRoleAssignment.ReadWrite.All`** | **Pflicht:** Gruppen-/User-Zuweisungen |
 | `Directory.Read.All` | Auflösung von `principalName` in YAML; Pipeline-Rollenprüfung |
 
 Engere Alternative zu `Directory.Read.All`: `User.Read.All` + `Group.Read.All`, wenn Sie nur UPN/Gruppennamen auflösen.

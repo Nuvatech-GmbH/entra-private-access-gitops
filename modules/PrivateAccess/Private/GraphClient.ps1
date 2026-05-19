@@ -46,9 +46,42 @@ function Get-GSAGraphErrorFromRecord {
             }
         }
         catch {
-            # kein Graph-JSON
+            # kein Graph-JSON in ErrorDetails
         }
     }
+
+    try {
+        $response = $null
+        if ($ErrorRecord.Exception -and $ErrorRecord.Exception.Response) {
+            $response = $ErrorRecord.Exception.Response
+        }
+        elseif ($ErrorRecord.Exception.InnerException -and $ErrorRecord.Exception.InnerException.Response) {
+            $response = $ErrorRecord.Exception.InnerException.Response
+        }
+        if ($response) {
+            $stream = $response.GetResponseStream()
+            if ($stream -and $stream.CanRead) {
+                $reader = [System.IO.StreamReader]::new($stream)
+                $body = $reader.ReadToEnd()
+                $reader.Dispose()
+                if ($body) {
+                    $parts.Add($body) | Out-Null
+                    $json = $body | ConvertFrom-Json -ErrorAction SilentlyContinue
+                    if ($json.error) {
+                        return @{
+                            code    = [string]$json.error.code
+                            message = [string]$json.error.message
+                            raw     = ($parts -join ' | ')
+                        }
+                    }
+                }
+            }
+        }
+    }
+    catch {
+        # Response-Stream nicht lesbar
+    }
+
     return @{ code = ''; message = ''; raw = ($parts -join ' | ') }
 }
 
@@ -129,6 +162,9 @@ function Invoke-GSAGraphBetaRequest {
     if (-not (Get-Module -Name 'Microsoft.Graph.Authentication')) {
         Import-Module Microsoft.Graph.Authentication -ErrorAction Stop | Out-Null
     }
+    if ($requestBodyJson -and $RelativeUri -match 'applicationSegments') {
+        Write-GSAStructuredLog -Level 'Information' -Message 'Graph Segment Request-Body' -Data @{ uri = $RelativeUri; body = $requestBodyJson }
+    }
     try {
         return Invoke-MgGraphRequest @params
     }
@@ -157,10 +193,10 @@ Microsoft Graph lehnte die Anfrage ab ($Method $RelativeUri).
 ${codeLine}Details: $detail
 ${bodyLine}
 Typische Ursachen für Application Segments:
-1) Ports als Bereich '3389-3389' (einzelne Ports werden normalisiert).
-2) JSON: 'ports' muss ein Array sein – nicht '"ports":"3389-3389"' (PowerShell ConvertTo-Json-Bug; im Repo behoben).
-3) destinationType passt nicht zum host (ipAddress vs. fqdn).
-4) Ungültiges protocol (tcp, udp, tcp,udp).
+1) Fehlende Graph Application permission 'Application.ReadWrite.All' (Admin Consent) – für Segmente laut Microsoft Learn erforderlich.
+2) Ports als Bereich '3389-3389'; JSON-Feld 'ports' muss ein Array sein.
+3) protocol nur 'tcp' oder 'udp' (nicht 'tcp,udp' für ipApplicationSegment).
+4) destinationType passt nicht zum host (ipAddress vs. fqdn).
 "@
         }
         throw
@@ -308,12 +344,17 @@ function New-GSASegmentPayload {
         $portList.Add((ConvertTo-GSAGraphPortRange -Port ([string]$p))) | Out-Null
     }
 
+    $protocol = [string]$Destination.protocol
+    if ($protocol -eq 'tcp,udp') {
+        throw "protocol 'tcp,udp' wird von ipApplicationSegment nicht unterstützt. Legen Sie zwei destinations an (tcp und udp) oder nutzen Sie nur tcp/udp."
+    }
+
     return @{
-        destinationHost = [string]$Destination.host
-        destinationType = [string]$Destination.type
-        port            = 0
-        ports           = $portList
-        protocol        = [string]$Destination.protocol
+        '@odata.type'     = '#microsoft.graph.ipApplicationSegment'
+        destinationHost   = [string]$Destination.host
+        destinationType   = [string]$Destination.type
+        ports             = $portList
+        protocol          = $protocol
     }
 }
 

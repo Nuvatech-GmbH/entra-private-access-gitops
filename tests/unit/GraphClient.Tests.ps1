@@ -22,6 +22,8 @@ Describe 'New-GSASegmentPayload' {
             protocol = 'tcp'
         }
         @($payload.ports) | Should -Be @('3389-3389')
+        $payload.ContainsKey('port') | Should -BeFalse
+        $payload['@odata.type'] | Should -Be '#microsoft.graph.ipApplicationSegment'
     }
 }
 

@@ -1,7 +1,7 @@
 function Test-GSAPipelineGraphAppPermissions {
     <#
     .SYNOPSIS
-    Prüft, ob die Pipeline-App die Application permission OnPremisesPublishingProfiles.ReadWrite.All hat (Admin Consent).
+    Prüft erforderliche Microsoft Graph Application permissions der Pipeline-App.
     #>
     [CmdletBinding()]
     param(
@@ -14,10 +14,11 @@ function Test-GSAPipelineGraphAppPermissions {
         return
     }
 
-    # Microsoft Graph service principal + App Role ID (Application permission)
-    $graphResourceAppId = '00000003-0000-0000-c000-000000000000'
-    $onPremPublishingReadWriteAppRoleId = '0b57845e-aa49-4e6f-8109-ce654fffa618'
-    $applicationReadWriteAllAppRoleId = '1bfefb4e-e0b5-418b-a88f-73fc16691ae5'
+    $requiredAppRoles = @(
+        'Application.ReadWrite.All'
+        'OnPremisesPublishingProfiles.ReadWrite.All'
+        'AppRoleAssignment.ReadWrite.All'
+    )
 
     $ourFilter = "appId eq '$($ctx.ClientId)'"
     $ourUri = "https://graph.microsoft.com/v1.0/servicePrincipals?`$filter=$([uri]::EscapeDataString($ourFilter))&`$select=id,displayName,appId"
@@ -27,6 +28,7 @@ function Test-GSAPipelineGraphAppPermissions {
     }
     $ourSp = $ourResp.value[0]
 
+    $graphResourceAppId = '00000003-0000-0000-c000-000000000000'
     $graphFilter = "appId eq '$graphResourceAppId'"
     $graphUri = "https://graph.microsoft.com/v1.0/servicePrincipals?`$filter=$([uri]::EscapeDataString($graphFilter))&`$select=id,appRoles"
     $graphResp = Invoke-GSAGraphBetaRequest -Method GET -RelativeUri $graphUri
@@ -36,30 +38,33 @@ function Test-GSAPipelineGraphAppPermissions {
     $assignments = Invoke-GSAGraphBetaRequest -Method GET -RelativeUri $assignUri
     $graphAssignments = @($assignments.value | Where-Object { $_.resourceId -eq $graphSp.id })
 
-    $assignedRoleIds = @($graphAssignments | ForEach-Object { [string]$_.appRoleId })
-    $hasOnPremPublishing = $assignedRoleIds -contains $onPremPublishingReadWriteAppRoleId
-    $hasAppReadWriteAll = $assignedRoleIds -contains $applicationReadWriteAllAppRoleId
-
-    Write-GSAStructuredLog -Level 'Information' -CorrelationId $CorrelationId -Message 'Pipeline Graph Application permissions (appRoleAssignments).' -Data @{
-        servicePrincipalId                      = $ourSp.id
-        hasApplicationReadWriteAll              = $hasAppReadWriteAll
-        hasOnPremisesPublishingProfilesReadWriteAll = $hasOnPremPublishing
-        graphAppRoleAssignmentCount             = $graphAssignments.Count
+    $assignedRoleValues = [System.Collections.Generic.List[string]]::new()
+    foreach ($a in $graphAssignments) {
+        $role = $graphSp.appRoles | Where-Object { $_.id -eq $a.appRoleId } | Select-Object -First 1
+        if ($role -and $role.value) {
+            $assignedRoleValues.Add([string]$role.value) | Out-Null
+        }
     }
 
-    if (-not $hasOnPremPublishing) {
+    $missing = @($requiredAppRoles | Where-Object { $_ -notin $assignedRoleValues })
+
+    Write-GSAStructuredLog -Level 'Information' -CorrelationId $CorrelationId -Message 'Pipeline Graph Application permissions (appRoleAssignments).' -Data @{
+        servicePrincipalId          = $ourSp.id
+        assignedGraphAppRoles       = @($assignedRoleValues)
+        missingGraphAppRoles        = $missing
+        graphAppRoleAssignmentCount = $graphAssignments.Count
+    }
+
+    if ($missing.Count -gt 0) {
         throw @"
-Deploy abgebrochen: Der Pipeline-App fehlt die Microsoft Graph **Application permission** 'OnPremisesPublishingProfiles.ReadWrite.All' (mit Admin Consent).
+Deploy abgebrochen: Der Pipeline-App fehlen Microsoft Graph Application permissions (Admin Consent): $($missing -join ', ').
 
-Diese Permission ist für Private Access / Application Proxy per App-only-Token erforderlich – 'Application.ReadWrite.All' und Entra-Directory-Rollen am Service Principal reichen dafür in der Praxis oft nicht aus.
+Pflicht für Private Access GitOps:
+- Application.ReadWrite.All (App anlegen + Application Segments)
+- OnPremisesPublishingProfiles.ReadWrite.All (onPremisesPublishing / ZTNA)
+- AppRoleAssignment.ReadWrite.All (Gruppen-/User-Zuweisungen)
 
-Schritte (Entra Portal):
-1) App registrations → sp-gsa-gitops-prod → API permissions → Add permission → Microsoft Graph → Application permissions
-2) 'OnPremisesPublishingProfiles.ReadWrite.All' hinzufügen
-3) 'Grant admin consent for <Tenant>'
-4) 5–10 Min. warten, halbfertige App PA-NUVATECH-OFFICE-RDP-GERSTHOFEN löschen, Pipeline erneut starten
-
-Referenz: https://learn.microsoft.com/en-us/graph/permissions-reference#onpremisespublishingprofilesreadwriteall
+Entra → App registrations → sp-gsa-gitops-prod → API permissions → Microsoft Graph → Application permissions → hinzufügen → Grant admin consent.
 "@
     }
 }
