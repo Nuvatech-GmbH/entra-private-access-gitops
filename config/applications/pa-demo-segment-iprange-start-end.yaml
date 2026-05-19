@@ -2,7 +2,7 @@ apiVersion: gsa.gitops/v1
 kind: PrivateAccessApplication
 metadata:
   name: PA-DEMO-SEGMENT-IPRANGE-START-END
-  description: "Demo IP-Bereich Start–Ende – WinRM 5985 auf kleinem Host-Block."
+  description: "Demo IP-Bereich Start–Ende – WinRM 5985 auf Connector-LAN (192.168.178.40–50)."
   owners:
     - platform@nuvatech.com
   changeReference: DEMO-SEGMENT-IPRANGE-START-END-001
@@ -14,7 +14,7 @@ spec:
   isAccessibleViaZTNAClient: true
   connectorGroup: Office-Gersthofen
   destinations:
-    - host: "10.0.3.10-10.0.3.20"
+    - host: "192.168.178.40-192.168.178.50"
       type: ipRange
       ports: ["5985-5985"]
       protocol: tcp

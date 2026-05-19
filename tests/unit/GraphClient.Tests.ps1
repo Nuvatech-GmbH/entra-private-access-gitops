@@ -32,6 +32,21 @@ Describe 'Get-GSAGraphSegmentDestinationCandidates' {
         @($c | ForEach-Object { $_.destinationType }) | Should -Contain 'ipRangeCidr'
     }
 
+    It 'bietet ipRange-Varianten und ipRangeCidr-Fallback für Start–Ende' {
+        $c = Get-GSAGraphSegmentDestinationCandidates -Destination @{
+            host = '192.168.178.40-192.168.178.50'
+            type = 'ipRange'
+        }
+        @($c | ForEach-Object { "$($_.destinationType)|$($_.destinationHost)" }) | Should -Contain 'ipRange|192.168.178.40-192.168.178.50'
+        @($c | ForEach-Object { $_.destinationType }) | Should -Contain 'ipRangeCidr'
+        ($c | Where-Object { $_.destinationType -eq 'ipRangeCidr' } | Select-Object -First 1).destinationHost | Should -Be '192.168.178.32/27'
+    }
+}
+
+Describe 'Get-GSAGraphMinimalIpv4CidrForRange' {
+    It 'berechnet kleinstes CIDR für IP-Bereich' {
+        Get-GSAGraphMinimalIpv4CidrForRange -StartIp '10.0.3.10' -EndIp '10.0.3.20' | Should -Be '10.0.3.0/27'
+    }
 }
 
 Describe 'Get-GSASegmentSignature' {
@@ -49,6 +64,17 @@ Describe 'Test-GSASegmentMatchesDestinationSpec' {
             destinationHost = '192.168.178.42/32'
             destinationType = 'ipRangeCidr'
             ports           = @('3389-3389')
+            protocol        = 'tcp'
+        }
+        Test-GSASegmentMatchesDestinationSpec -Segment $segment -Destination $dest | Should -BeTrue
+    }
+
+    It 'erkennt ipRange-YAML wenn Graph ipRangeCidr für den Bereich gespeichert hat' {
+        $dest = @{ host = '192.168.178.40-192.168.178.50'; type = 'ipRange'; ports = @('5985'); protocol = 'tcp' }
+        $segment = [pscustomobject]@{
+            destinationHost = '192.168.178.32/27'
+            destinationType = 'ipRangeCidr'
+            ports           = @('5985-5985')
             protocol        = 'tcp'
         }
         Test-GSASegmentMatchesDestinationSpec -Segment $segment -Destination $dest | Should -BeTrue

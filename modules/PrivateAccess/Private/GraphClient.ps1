@@ -564,6 +564,110 @@ function Find-GSAApplicationSegmentBySignature {
     return $null
 }
 
+function ConvertTo-GSAUInt32FromIpv4 {
+    param([Parameter(Mandatory)][string]$Ip)
+
+    $bytes = [System.Net.IPAddress]::Parse($Ip).GetAddressBytes()
+    [Array]::Reverse($bytes)
+    return [BitConverter]::ToUInt32($bytes, 0)
+}
+
+function ConvertFrom-GSAUInt32ToIpv4 {
+    param([Parameter(Mandatory)][uint32]$Value)
+
+    $bytes = [BitConverter]::GetBytes([uint32]$Value)
+    [Array]::Reverse($bytes)
+    return ([System.Net.IPAddress]$bytes).ToString()
+}
+
+function ConvertFrom-GSAIpRangeHostString {
+    <#
+    .SYNOPSIS
+    Parst YAML host für type ipRange (Start–Ende), z. B. 10.0.3.10-10.0.3.20.
+    #>
+    param([Parameter(Mandatory)][string]$HostValue)
+
+    $h = $HostValue.Trim()
+    if ($h -match '^(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})\s*-\s*(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})$') {
+        return @{ start = $Matches[1]; end = $Matches[2] }
+    }
+    if ($h -match '^(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})\s*,\s*(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})$') {
+        return @{ start = $Matches[1]; end = $Matches[2] }
+    }
+    if ($h -match '^(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})\s*/\s*(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})$') {
+        return @{ start = $Matches[1]; end = $Matches[2] }
+    }
+    return $null
+}
+
+function Get-GSAGraphIpv4HostMask {
+    param([Parameter(Mandatory)][ValidateRange(0, 32)][int]$Prefix)
+
+    if ($Prefix -ge 32) { return [uint32]0 }
+    if ($Prefix -le 0) { return [uint32]4294967295 }
+    $shift = 32 - $Prefix
+    return [uint32](([uint64]1 -shl $shift) - [uint64]1)
+}
+
+function Get-GSAGraphIpv4NetworkMask {
+    param([Parameter(Mandatory)][ValidateRange(0, 32)][int]$Prefix)
+
+    if ($Prefix -le 0) { return [uint32]0 }
+    if ($Prefix -ge 32) { return [uint32]4294967295 }
+    $hostMask = Get-GSAGraphIpv4HostMask -Prefix $Prefix
+    return [uint32]([uint64]4294967295 - [uint64]$hostMask)
+}
+
+function Get-GSAGraphMinimalIpv4CidrForRange {
+    param(
+        [Parameter(Mandatory)][string]$StartIp,
+        [Parameter(Mandatory)][string]$EndIp
+    )
+
+    [uint32]$startNum = ConvertTo-GSAUInt32FromIpv4 -Ip $StartIp
+    [uint32]$endNum = ConvertTo-GSAUInt32FromIpv4 -Ip $EndIp
+    if ($endNum -lt $startNum) {
+        throw "Ungültiger IP-Bereich: $StartIp-$EndIp (Ende vor Start)."
+    }
+
+    for ($prefix = 32; $prefix -ge 0; $prefix--) {
+        [uint32]$networkMask = Get-GSAGraphIpv4NetworkMask -Prefix $prefix
+        [uint32]$network = $startNum -band $networkMask
+        [uint32]$hostMask = Get-GSAGraphIpv4HostMask -Prefix $prefix
+        [uint32]$broadcast = $network -bor $hostMask
+        if ($network -le $startNum -and $broadcast -ge $endNum) {
+            return "$(ConvertFrom-GSAUInt32ToIpv4 -Value $network)/$prefix"
+        }
+    }
+    return $null
+}
+
+function Test-GSAIpv4ContainedInCidr {
+    param(
+        [Parameter(Mandatory)][string]$Ip,
+        [Parameter(Mandatory)][string]$Cidr
+    )
+
+    if ($Cidr -notmatch '^(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})/(\d{1,2})$') { return $false }
+    $prefix = [int]$Matches[2]
+    if ($prefix -lt 0 -or $prefix -gt 32) { return $false }
+
+    [uint32]$addr = ConvertTo-GSAUInt32FromIpv4 -Ip $Ip
+    [uint32]$net = ConvertTo-GSAUInt32FromIpv4 -Ip $Matches[1]
+    [uint32]$networkMask = Get-GSAGraphIpv4NetworkMask -Prefix $prefix
+    return (($addr -band $networkMask) -eq ($net -band $networkMask))
+}
+
+function Test-GSAIpv4RangeContainedInCidr {
+    param(
+        [Parameter(Mandatory)][string]$StartIp,
+        [Parameter(Mandatory)][string]$EndIp,
+        [Parameter(Mandatory)][string]$Cidr
+    )
+
+    return (Test-GSAIpv4ContainedInCidr -Ip $StartIp -Cidr $Cidr) -and (Test-GSAIpv4ContainedInCidr -Ip $EndIp -Cidr $Cidr)
+}
+
 function Get-GSAGraphHostMatchKeys {
     param([Parameter(Mandatory)][string]$HostValue)
 
@@ -577,6 +681,17 @@ function Get-GSAGraphHostMatchKeys {
     }
     elseif ($h -match '^(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})/32$') {
         [void]$keys.Add($Matches[1])
+    }
+    else {
+        $range = ConvertFrom-GSAIpRangeHostString -HostValue $HostValue
+        if ($range) {
+            $dash = "$($range.start)-$($range.end)"
+            [void]$keys.Add($dash)
+            [void]$keys.Add("$($range.start),$($range.end)")
+            [void]$keys.Add("$($range.start)/$($range.end)")
+            $cidr = Get-GSAGraphMinimalIpv4CidrForRange -StartIp $range.start -EndIp $range.end
+            if ($cidr) { [void]$keys.Add($cidr.ToLowerInvariant()) }
+        }
     }
 
     return @($keys)
@@ -610,6 +725,16 @@ function Test-GSASegmentMatchesDestinationSpec {
     foreach ($key in $specKeys) {
         if ($segKeys -contains $key) { return $true }
     }
+
+    if ($specType -eq 'iprange') {
+        $range = ConvertFrom-GSAIpRangeHostString -HostValue ([string]$Destination.host)
+        if ($range -and ([string]$Segment.destinationType).ToLowerInvariant() -eq 'iprangecidr') {
+            if (Test-GSAIpv4RangeContainedInCidr -StartIp $range.start -EndIp $range.end -Cidr ([string]$Segment.destinationHost)) {
+                return $true
+            }
+        }
+    }
+
     return $false
 }
 
@@ -680,6 +805,22 @@ function Get-GSAGraphSegmentDestinationCandidates {
     if ($typeValue -eq 'ipAddress' -and $hostValue -match '^(?:\d{1,3}\.){3}\d{1,3}$') {
         & $addCandidate "$hostValue/32" 'ipRangeCidr'
         & $addCandidate $hostValue 'ipAddress'
+    }
+    elseif ($typeValue -eq 'ipRange') {
+        $range = ConvertFrom-GSAIpRangeHostString -HostValue $hostValue
+        if ($range) {
+            $dash = "$($range.start)-$($range.end)"
+            & $addCandidate $dash 'ipRange'
+            & $addCandidate "$($range.start),$($range.end)" 'ipRange'
+            & $addCandidate "$($range.start)/$($range.end)" 'ipRange'
+            $cidr = Get-GSAGraphMinimalIpv4CidrForRange -StartIp $range.start -EndIp $range.end
+            if ($cidr) {
+                & $addCandidate $cidr 'ipRangeCidr'
+            }
+        }
+        else {
+            & $addCandidate $hostValue $typeValue
+        }
     }
     else {
         & $addCandidate $hostValue $typeValue
@@ -846,6 +987,7 @@ $allErrorsText
 
 Hinweise:
 - Für RDP auf eine einzelne IP empfiehlt sich in YAML: type ipRangeCidr, host 10.0.1.1/32
+- type ipRange (Start–Ende): Graph akzeptiert oft nur ipRangeCidr; das Modul probiert mehrere Formate und ein passendes CIDR
 - Connector Group muss mindestens einen aktiven Connector enthalten
 - Private Access / Entra Suite Lizenz im Tenant aktiv
 "@
