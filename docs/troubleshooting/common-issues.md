@@ -54,18 +54,55 @@ Die Pipeline prüft diese Permission vor dem Deploy (`Test-GSAPipelineGraphAppPe
 
 **Symptom:** `IP address and port overlaps with existing segment on application` mit `conflictingApplication={ appId, objectId, ... }`.
 
-**Ursache:** Im **gesamten Mandanten** darf dieselbe IP+Port-Kombination (z. B. `10.0.1.1` + TCP `3389`) nur **einmal** als Private-Access-Segment existieren – nicht nur pro Anzeigename.
+**Ursache (normal):** Im **gesamten Mandanten** darf dieselbe IP+Port-Kombination (z. B. `10.0.1.1` + TCP `3389`) nur **einmal** als Private-Access-Segment existieren – nicht nur pro Anzeigename.
 
-Das passiert oft nach mehreren Test-Deploys: Sie löschen `PA-NUVATECH-OFFICE-RDP-GERSTHOFEN`, aber eine **ältere/halbfertige** App mit anderem Namen (manchmal nur GUID als Name) hält das Segment noch.
+**Ursache (häufig bei Ihnen im Test): Verwaiste Segmente im GSA-Backend**
 
-**Lösung:**
+Microsoft bestätigt: Das Löschen unter **Entra → Unternehmensanwendungen** oder **App-Registrierungen** entfernt **Application Segments im Global-Secure-Access-Backend nicht zuverlässig**. Die Konflikt-`appId`/`objectId` kann im Portal **nirgends auffindbar** sein – Graph meldet sie trotzdem, weil das **Segment noch im GSA-Dienst** existiert (orphaned segment).
 
-1. Im Entra-Portal → **Unternehmensanwendungen** → nach **objectId** oder **appId** aus der Fehlermeldung suchen (nicht nur nach `PA-NUVATECH-…`).
-2. Diese **Konflikt-App** löschen (Enterprise Application).
-3. Die **neu angelegte** App aus dem fehlgeschlagenen Lauf ebenfalls löschen (objectId/ApplicationId aus dem Pipeline-Log).
-4. Deploy erneut starten.
+Typisches Muster:
 
-**Alternative:** In der YAML eine andere `host`/`ports`-Kombination verwenden.
+- Mehrere Test-Apps / Portal-Anlage / fehlgeschlagene Pipeline-Läufe
+- App im Portal gelöscht, **Segment-Reservierung bleibt**
+- **Jede neue IP** scheitert mit **derselben** `conflictingApplication` → die Geister-App hält **mehrere** Segmente oder der Backend-Index zeigt immer dieselbe Blocker-App
+- `appName` in der Fehlermeldung = **GUID** (kein `displayName` gesetzt) → Suche nach Namen findet nichts
+
+Das ist **kein** „Graph liest alte Daten“ im Sinne von Cache – es ist ein **getrennter GSA-Service-Plane-Zustand**, der schlechter mit Entra-UI synchronisiert ist als erwartet.
+
+**Lösung (empfohlene Reihenfolge):**
+
+1. **IDs aus dem Fehlerlog notieren** (`objectId`, `appId` aus `conflictingApplication`).
+2. **Diagnose-Skript** (mit `Connect-MgGraph` und ausreichenden Rechten):
+
+   ```powershell
+   pwsh ./scripts/admin/Invoke-GSASegmentConflictDiagnostics.ps1 `
+     -ConflictObjectId 'f8473034-5426-4d77-912c-7c323b8ec6dd' `
+     -ConflictAppId '84ba0dce-1e90-45a6-87a8-6f2020d3b918'
+   ```
+
+3. **Papierkorb leeren (häufig der entscheidende Schritt):**
+   - **App-Registrierungen** → **Gelöschte Anwendungen** → nach `appId`/`objectId` suchen → **Endgültig löschen (Purge)**
+   - Das ist **korrekt** und bewusst **manuell** – die Deploy-Pipeline macht das **nicht** automatisch (siehe [`application-lifecycle-and-purge.md`](../operations/application-lifecycle-and-purge.md))
+4. **Suche im Portal (weitere Pfade):**
+   - **Unternehmensanwendungen** → Filter **Objekt-ID** = `objectId` (nicht Anzeigename)
+   - **Global Secure Access** → **Applications** → **Enterprise applications** (nicht nur Entra Enterprise Apps)
+5. Wenn das Skript **Segmente listet**: mit `-RemoveSegmentsOnConflictApp` löschen (benötigt `Application.ReadWrite.All`) **oder** Microsoft Entra PowerShell Beta: `Remove-EntraBetaPrivateAccessApplicationSegment` ([GSA PowerShell-Doku](https://microsoft.github.io/GlobalSecureAccess/Entra%20Private%20Access/powershell/)).
+6. **Neu angelegte** Apps aus fehlgeschlagenen Pipeline-Läufen ebenfalls bereinigen (aktiv + Papierkorb).
+7. Deploy erneut starten.
+
+**Wenn Graph keine Segmente listet, der Fehler aber bleibt:**
+
+- **Garbage Collection** im GSA-Backend (kann **mehrere Tage** dauern – Microsoft Q&A)
+- **Microsoft Support** mit `request-id` aus dem Fehler und `conflictingApplication`
+
+**Prävention:**
+
+- Private-Access-Apps und Segmente möglichst **nur** über GSA → Applications → Enterprise applications **oder** dieses GitOps-Repo verwalten
+- Nicht nur unter „Entra Enterprise Applications“ anlegen/löschen und GSA-Blade erwarten
+
+**Alternative:** Andere `host`/`ports` – hilft nur, wenn **diese** Kombination noch nicht von einem verwaisten Segment belegt ist.
+
+Referenz: [Microsoft Q&A – Can't add application segment (orphaned segment)](https://learn.microsoft.com/en-us/answers/questions/5844326/cant-add-new-application-segment-to-global-secure.html)
 
 
 ### Welche App darf gelöscht werden?

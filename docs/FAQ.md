@@ -22,6 +22,10 @@ Ja, `spec.applicationType: quickAccess` mappt auf `quickaccessapp`. DNS-Resoluti
 
 Siehe [`docs/operations/portal-configuration-after-deploy.md`](operations/portal-configuration-after-deploy.md).
 
+## Soll die Pipeline gelöschte Apps aus „Gelöschte Anwendungen“ automatisch purgen?
+
+**Nein.** Purge ist irreversibel und betrifft den Mandanten-Papierkorb – das ist ein **manueller** Cleanup-Schritt (z. B. nach Segment-Konflikten), nicht Teil von `deploy-production`. Details: [`docs/operations/application-lifecycle-and-purge.md`](operations/application-lifecycle-and-purge.md).
+
 ## Wie verhindern wir parallele konkurrierende PRs?
 
 Organisatorisch durch Teamprozesse; technisch durch:

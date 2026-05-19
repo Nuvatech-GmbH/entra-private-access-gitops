@@ -308,7 +308,7 @@ Details: `docs/security/authentication-and-permissions.md`
 | Connector Group nicht gefunden | Name in YAML = Name in Entra; Gruppe manuell angelegt? |
 | Gruppe für Zuweisung | `principalName` muss existieren oder `principalId` nutzen |
 | Deploy grün, Zugriff geht nicht | Datenverkehrsprofil **Privater Zugriff** aktivieren + Gruppe am Profil; GSA Client → [`portal-configuration-after-deploy.md`](docs/operations/portal-configuration-after-deploy.md) |
-| Segment-Duplikat (`Invalid_AppSegments_NonwebApp_Duplicate`) | Andere App im Tenant mit gleicher IP+Port löschen → `docs/troubleshooting/common-issues.md` |
+| Segment-Duplikat (`Invalid_AppSegments_NonwebApp_Duplicate`) | Oft **verwaistes GSA-Segment** (App-ID im Portal nicht sichtbar) → `docs/troubleshooting/common-issues.md`, Skript `scripts/admin/Invoke-GSASegmentConflictDiagnostics.ps1` |
 | OIDC / Login failed | Federated Credential Subject = `repo:…:environment:production` |
 | Variables | `AZURE_TENANT_ID`, `GSA_GRAPH_CLIENT_ID` exakt in GitHub |
 
@@ -405,6 +405,7 @@ Kurzcheckliste – Details in `docs/security/authentication-and-permissions.md`:
 | Security / OIDC / Rollen | `docs/security/authentication-and-permissions.md` |
 | Troubleshooting (403, Connector, …) | `docs/troubleshooting/common-issues.md` |
 | **Portal nach Deploy (Profil, Client, Checkliste)** | **`docs/operations/portal-configuration-after-deploy.md`** |
+| **Löschen / Papierkorb / Purge (kein Auto-Purge in Pipeline)** | **`docs/operations/application-lifecycle-and-purge.md`** |
 | Onboarding Engineers | `docs/onboarding/engineer-guide.md` |
 | Governance | `docs/governance/model.md` |
 | Runbook / Rollback | `docs/operations/runbook.md` |

@@ -226,7 +226,7 @@ Erweiterung per Graph für Profile ist möglich, aber **bewusst nicht** Teil die
 | „Kein Zugriff“ trotz Gruppe an der App | Gruppe nur an **App**, nicht am **Datenverkehrsprofil** |
 | Timeout zum internen Host | Connector offline oder falsche Connector Group an der App |
 | Client verbindet nicht | GSA Client fehlt / User nicht in Gruppe / Profil deaktiviert |
-| Deploy: Segment-Duplikat | Andere App im Tenant nutzt bereits dieselbe **IP+Port**-Kombination |
+| Deploy: Segment-Duplikat | Andere App nutzt **IP+Port** – oder **verwaistes Segment** (App im Portal gelöscht, GSA-Backend noch aktiv) → `docs/troubleshooting/common-issues.md` |
 
 ---
 

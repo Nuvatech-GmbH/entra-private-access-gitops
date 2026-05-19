@@ -31,4 +31,12 @@
 
 ## Optionale Löschungen
 
-`Remove-GSAPrivateAccessApplication` ist bewusst destruktiv und nicht Teil des Standard-Deploy-Skripts.
+`Remove-GSAPrivateAccessApplication` ist bewusst destruktiv und **nicht** Teil des Standard-Deploy-Skripts.
+
+**Papierkorb (Purge):** Die Pipeline purgt **keine** `directory/deletedItems` automatisch. Nach Test-/Konflikt-Bereinigung Apps unter **App-Registrierungen → Gelöschte Anwendungen** manuell endgültig löschen – oder gezielt:
+
+```powershell
+Remove-GSAPrivateAccessApplication -ApplicationId '<objectId>' -PurgeFromRecycleBin -RecycleBinOnly
+```
+
+Entscheidung und Begründung: [`application-lifecycle-and-purge.md`](application-lifecycle-and-purge.md).
