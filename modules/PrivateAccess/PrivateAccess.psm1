@@ -17,5 +17,6 @@ Export-ModuleMember -Function @(
     'Compare-GSAState',
     'Test-GSAConfiguration',
     'Invoke-GSADeployment',
-    'Test-GSAPipelineEntraRoles'
+    'Test-GSAPipelineEntraRoles',
+    'Test-GSAPipelineGraphAppPermissions'
 )

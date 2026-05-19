@@ -93,9 +93,10 @@ Microsoft Graph verweigerte die Operation ($Method $RelativeUri).
 ${codeLine}Details: $detail
 
 Typische Ursachen für Private Access (onPremisesPublishing):
-1) Dem Pipeline-Service-Principal fehlt die Directory-Rolle 'Application Administrator' (Enterprise Application sp-gsa-gitops-prod, nicht nur GSA Administrator).
-2) Application permissions ohne Admin Consent: Application.ReadWrite.All, AppRoleAssignment.ReadWrite.All; für Rollenprüfung Directory.Read.All.
-3) Halbfertige Ziel-App löschen (Enterprise applications → PA-NUVATECH-OFFICE-RDP-GERSTHOFEN). Die Pipeline-App sp-gsa-gitops-prod nicht löschen.
+1) Fehlende Graph Application permission 'OnPremisesPublishingProfiles.ReadWrite.All' (Admin Consent) – häufigste Ursache bei App-only/OIDC.
+2) Application permissions ohne Admin Consent: Application.ReadWrite.All, AppRoleAssignment.ReadWrite.All.
+3) Zusätzlich Directory-Rolle 'Application Administrator' am Enterprise Application sp-gsa-gitops-prod empfohlen.
+4) Halbfertige Ziel-App löschen (PA-NUVATECH-OFFICE-RDP-GERSTHOFEN). Pipeline-App sp-gsa-gitops-prod nicht löschen.
 "@
         }
         throw

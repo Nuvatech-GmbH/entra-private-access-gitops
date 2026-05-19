@@ -43,19 +43,20 @@ Alternativ nur zum schnellen Test: **Branch** `main` – dann funktionieren PR-W
 
 | Permission | Zweck |
 | --- | --- |
-| `Application.ReadWrite.All` | Apps, `onPremisesPublishing`, Application Segments |
+| `Application.ReadWrite.All` | App-Registrierungen, Template `instantiate`, Segmente |
+| **`OnPremisesPublishingProfiles.ReadWrite.All`** | **Pflicht** für Private Access / `onPremisesPublishing` per App-only-Token (OIDC) |
 | `AppRoleAssignment.ReadWrite.All` | Zuweisungen an Service Principals |
-| `Directory.Read.All` | Auflösung von `principalName` in YAML; **empfohlen** für Pipeline-Rollenprüfung vor Deploy |
+| `Directory.Read.All` | Auflösung von `principalName` in YAML; Pipeline-Rollenprüfung |
 
 Engere Alternative zu `Directory.Read.All`: `User.Read.All` + `Group.Read.All`, wenn Sie nur UPN/Gruppennamen auflösen.
 
 Anschließend: **Grant admin consent for &lt;Tenant&gt;**.
 
-### 1.4 Entra Directory-Rolle für die Pipeline (häufig erforderlich)
+### 1.4 Entra Directory-Rolle für die Pipeline (empfohlen)
 
-Für **Private Access**-Eigenschaften (`onPremisesPublishing`, ZTNA, Application Segments) reichen in der Praxis oft **nur** Graph Application permissions **nicht** aus.
+Zusätzlich zu **`OnPremisesPublishingProfiles.ReadWrite.All`** (Application permission) empfohlen:
 
-Weisen Sie dem **Service Principal** Ihrer Pipeline-App (`sp-gsa-gitops-prod`) zusätzlich eine Directory-Rolle zu:
+Weisen Sie dem **Service Principal** Ihrer Pipeline-App (`sp-gsa-gitops-prod`) eine Directory-Rolle zu:
 
 | Directory-Rolle | Empfehlung |
 | --- | --- |
@@ -129,7 +130,7 @@ Entspricht `.github/workflows/deploy-production.yml` (`environment: production`)
 | --- | --- |
 | OIDC / Azure Login failed | Federated Credential Subject vs. Branch/Environment/PR |
 | Variable nicht gesetzt | Schreibweise `AZURE_TENANT_ID`, `GSA_GRAPH_CLIENT_ID` |
-| HTTP 403 von Graph (PATCH `applications/…`) | Admin consent; **Application Administrator** am Pipeline-Service-Principal; halbfertige App löschen + Re-run |
+| HTTP 403 von Graph (PATCH `applications/…`) | **`OnPremisesPublishingProfiles.ReadWrite.All`** (Application) + Admin Consent; ggf. **Application Administrator** am SP; halbfertige App löschen + Re-run |
 | Connector Group nicht gefunden | Manuelle Anlage im Portal; exakter Name in YAML `spec.connectorGroup` |
 
 ---

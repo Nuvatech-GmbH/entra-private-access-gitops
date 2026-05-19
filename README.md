@@ -232,8 +232,8 @@ Bei **Update** werden fehlende Segmente/Zuweisungen ergänzt; optionale Flags k�
 | Komponente | Beschreibung |
 | --- | --- |
 | App Registration `sp-gsa-gitops-prod` | Pipeline-Identität, OIDC zu GitHub |
-| Graph **Application permissions** + Admin Consent | `Application.ReadWrite.All`, `AppRoleAssignment.ReadWrite.All`, ggf. `Directory.Read.All` |
-| **Directory-Rollen** am **Service Principal** der Pipeline | Siehe nächstes Kapitel – **ohne diese Rollen typischer 403 beim PATCH** |
+| Graph **Application permissions** + Admin Consent | `Application.ReadWrite.All`, **`OnPremisesPublishingProfiles.ReadWrite.All`**, `AppRoleAssignment.ReadWrite.All`, `Directory.Read.All` |
+| **Directory-Rollen** am **Service Principal** der Pipeline | Empfohlen: **Application Administrator** (zusätzlich zu Graph Permissions) |
 | GitHub Variables | `AZURE_TENANT_ID`, `GSA_GRAPH_CLIENT_ID` |
 | Environment **`production`** | Optional: Freigabe vor Deploy |
 | Federated Credentials | Subject für `environment:production` und `pull_request` |
@@ -244,23 +244,25 @@ Bei **Update** werden fehlende Segmente/Zuweisungen ergänzt; optionale Flags k�
 
 ## Berechtigungen der Pipeline (wichtige Erkenntnisse)
 
-### Graph Application Permissions allein reichen oft nicht
+### Pflicht: `OnPremisesPublishingProfiles.ReadWrite.All` (Application permission)
 
-In der Praxis gilt für **Private Access** / `onPremisesPublishing` (ZTNA-Flag, App-Typ):
+Für **Private Access** per **OIDC / App-only** reicht `Application.ReadWrite.All` **nicht** für `PATCH` auf `onPremisesPublishing`.
 
-| Was funktioniert mit nur `Application.ReadWrite.All` | Was oft **403 Forbidden** liefert |
+| Permission | Zweck |
 | --- | --- |
-| Graph-Verbindung (OIDC) | `PATCH` mit `onPremisesPublishing` / `isAccessibleViaZTNAClient` |
-| App aus Template **anlegen** (`instantiate`) | Vollständige Private-Access-Konfiguration |
+| `Application.ReadWrite.All` | App aus Template anlegen (`instantiate`) |
+| **`OnPremisesPublishingProfiles.ReadWrite.All`** | **`onPremisesPublishing` / ZTNA setzen** (ohne angemeldeten Benutzer) |
 
-Microsoft dokumentiert für das [offizielle Tutorial](https://learn.microsoft.com/en-us/graph/tutorial-entra-private-access) getrennte **Entra-Directory-Rollen** – für Service Principals müssen diese dem **Enterprise Application** (Service Principal) der Pipeline zugewiesen werden, **nicht** nur API Permissions auf der App Registration setzen.
+Entra → App registrations → `sp-gsa-gitops-prod` → **API permissions** → Microsoft Graph → **Application permissions** → `OnPremisesPublishingProfiles.ReadWrite.All` → **Grant admin consent**.
 
-### Empfohlene Directory-Rollen am Pipeline-Service-Principal
+Referenz: [Graph permissions – OnPremisesPublishingProfiles.ReadWrite.All](https://learn.microsoft.com/en-us/graph/permissions-reference#onpremisespublishingprofilesreadwriteall)
+
+### Zusätzlich empfohlen: Directory-Rollen am Pipeline-Service-Principal
 
 | Rolle | Zweck |
 | --- | --- |
-| **Application Administrator** | App-Objekt, Application Proxy / Private Access – **in der Praxis für den PATCH erforderlich** |
-| **Global Secure Access Administrator** | GSA-spezifische Einstellungen – **allein reichte in Tests nicht** für den `PATCH`; **zusätzlich** zu Application Administrator sinnvoll |
+| **Application Administrator** | Ergänzend zu Graph Permissions |
+| **Global Secure Access Administrator** | GSA-Einstellungen |
 
 **Zuweisung:** Entra → **Roles and administrators** → Rolle wählen → **Add assignment** → Mitglied = **Service principal** → `sp-gsa-gitops-prod` (Enterprise App).
 
@@ -270,9 +272,8 @@ Nach Rollenänderung: **10–15 Minuten** warten, halbfertige Apps aus **Enterpr
 
 ### Least Privilege – realistische Einordnung
 
-- Reine **Graph Permissions ohne Directory-Rolle** sind für vollautomatisches Private Access derzeit **nicht zuverlässig** (Microsoft-API prüft Entra-Rollen, Fehlercode u. a. `NotAdminRoleNoEnoughCustomPermission`).
-- **Engere** Rolle als Application Administrator gibt es für diesen API-Pfad praktisch nicht; **PIM** (zeitlich begrenzte Aktivierung der Rolle) ist ein möglicher Kompromiss.
-- **Global Secure Access Administrator** allein ersetzt **Application Administrator** für den dokumentierten Ablauf **nicht**.
+- Die **spezifische** Application permission `OnPremisesPublishingProfiles.ReadWrite.All` ist schmaler als `Directory.ReadWrite.All` und der übliche Fix für App-Proxy/Private-Access-Automation.
+- Directory-Rollen am Service Principal bleiben **empfohlen**, ersetzen aber **nicht** die Graph Application permission oben.
 
 Details: `docs/security/authentication-and-permissions.md`
 
@@ -284,7 +285,7 @@ Details: `docs/security/authentication-and-permissions.md`
 | --- | --- |
 | Deploy nach Rollen-Fix | Halbfertige App im Portal löschen → **Actions** → **deploy-production** → **Re-run all jobs** |
 | Nach fehlgeschlagenem Lauf | App `PA-…` in **Enterprise applications** entfernen, sonst „kaputte“ Teilkonfiguration |
-| Graph **403** auf `PATCH …/applications/…` | Admin Consent prüfen; **Application Administrator** am SP; Wartezeit nach Rollenzuweisung |
+| Graph **403** auf `PATCH …/applications/…` | **`OnPremisesPublishingProfiles.ReadWrite.All`** + Admin Consent; ggf. Application Administrator am SP |
 | Connector Group nicht gefunden | Name in YAML = Name in Entra; Gruppe manuell angelegt? |
 | Gruppe für Zuweisung | `principalName` muss existieren oder `principalId` nutzen |
 | OIDC / Login failed | Federated Credential Subject = `repo:…:environment:production` |

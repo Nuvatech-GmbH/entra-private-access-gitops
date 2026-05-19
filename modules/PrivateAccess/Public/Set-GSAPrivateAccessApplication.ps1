@@ -34,17 +34,28 @@ function Set-GSAPrivateAccessApplication {
     $spId = (Get-GSAPrivateAccessApplication -ApplicationId $applicationId -CorrelationId $CorrelationId).ServicePrincipalId
 
     $appType = ConvertTo-GSAGraphApplicationType -ApplicationType ([string]$spec.applicationType)
-    $patch = @{
-        onPremisesPublishing = @{
-            applicationType               = $appType
-            isAccessibleViaZTNAClient     = [bool]$spec.isAccessibleViaZTNAClient
+    $pipelineSpId = $null
+    $ctx = Get-MgContext -ErrorAction SilentlyContinue
+    if ($ctx -and $ctx.ClientId) {
+        $ourFilter = "appId eq '$($ctx.ClientId)'"
+        $ourUri = "https://graph.microsoft.com/v1.0/servicePrincipals?`$filter=$([uri]::EscapeDataString($ourFilter))&`$select=id"
+        $ourSp = Invoke-GSARetryableOperation -Action { Invoke-GSAGraphBetaRequest -Method GET -RelativeUri $ourUri }
+        if ($ourSp.value -and $ourSp.value.Count -gt 0) {
+            $pipelineSpId = [string]$ourSp.value[0].id
         }
     }
-    if ($null -ne $spec.isDnsResolutionEnabled) {
-        $patch.onPremisesPublishing.isDnsResolutionEnabled = [bool]$spec.isDnsResolutionEnabled
+
+    $pubParams = @{
+        ApplicationId               = $applicationId
+        ApplicationType             = $appType
+        IsAccessibleViaZTNAClient   = [bool]$spec.isAccessibleViaZTNAClient
+        PipelineServicePrincipalId  = $pipelineSpId
     }
-    $appPatchUri = "https://graph.microsoft.com/beta/applications/$applicationId"
-    Invoke-GSARetryableOperation -Action { Invoke-GSAGraphBetaRequest -Method PATCH -RelativeUri $appPatchUri -Body $patch } | Out-Null
+    if ($null -ne $spec.isDnsResolutionEnabled) {
+        $pubParams['IsDnsResolutionEnabled'] = [bool]$spec.isDnsResolutionEnabled
+    }
+
+    Invoke-GSARetryableOperation -Action { Set-GSAOnPremisesPublishing @pubParams } | Out-Null
 
     $cg = Get-GSAConnectorGroupByName -Name ([string]$spec.connectorGroup) -CorrelationId $CorrelationId
     $cgOdataId = "https://graph.microsoft.com/beta/onPremisesPublishingProfiles/applicationproxy/connectorGroups/$($cg.id)"

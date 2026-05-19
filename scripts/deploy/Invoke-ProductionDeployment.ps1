@@ -34,6 +34,7 @@ else {
 }
 
 Test-GSAPipelineEntraRoles -CorrelationId $correlation
+Test-GSAPipelineGraphAppPermissions -CorrelationId $correlation
 
 $results = Invoke-GSADeployment -ApplicationsPath $ApplicationsPath -DryRun:$DryRun -WhatIf:$WhatIf -RemoveAbsentSegments:$RemoveAbsentSegments -RemoveAbsentAssignments:$RemoveAbsentAssignments -CorrelationId $correlation
 

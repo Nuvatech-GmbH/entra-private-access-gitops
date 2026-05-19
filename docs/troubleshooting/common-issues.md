@@ -27,6 +27,11 @@ Install-Module powershell-yaml -Scope CurrentUser
 
 ## Graph 403 beim Deploy (PATCH applications/…)
 
+**Häufigste Lösung:** Graph **Application permission** `OnPremisesPublishingProfiles.ReadWrite.All` auf `sp-gsa-gitops-prod` hinzufügen und **Grant admin consent** ausführen. `Application.ReadWrite.All` allein reicht für `onPremisesPublishing` per OIDC/App-only nicht.
+
+Die Pipeline prüft diese Permission vor dem Deploy (`Test-GSAPipelineGraphAppPermissions`).
+
+
 ### Welche App darf gelöscht werden?
 
 | App | Löschen vor Re-Deploy? |
