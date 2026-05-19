@@ -1,5 +1,16 @@
 # Troubleshooting
 
+## Deploy erfolgreich, aber Nutzer kommen nicht auf die App (RDP / internes Ziel)
+
+**Häufigste Ursachen (Portal, nicht YAML):**
+
+1. **Profil für privaten Zugriff** unter Global Secure Access → Verbinden → Datenverkehrsweiterleitung ist **deaktiviert**.
+2. Am Profil sind **0 Benutzer / 0 Gruppen** zugewiesen (Gruppe nur an der Enterprise App, nicht am Profil).
+3. **Global Secure Access Client** fehlt auf dem Client, obwohl `isAccessibleViaZTNAClient: true`.
+4. Connector in der Connector Group ist **nicht aktiv**.
+
+Vollständige Checkliste: [`docs/operations/portal-configuration-after-deploy.md`](../operations/portal-configuration-after-deploy.md)
+
 ## `Connector Group wurde nicht gefunden`
 
 - Prüfen Sie exakte Schreibweise von `spec.connectorGroup`.

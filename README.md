@@ -14,12 +14,13 @@ Dieses Repository ist die **Single Source of Truth** für **Microsoft Entra Priv
 4. [Was passiert automatisch in der Pipeline?](#was-passiert-automatisch-in-der-pipeline)
 5. [Was die Pipeline technisch in Entra macht](#was-die-pipeline-technisch-in-entra-macht)
 6. [Voraussetzungen im Mandanten (vor dem ersten Deploy)](#voraussetzungen-im-mandanten-vor-dem-ersten-deploy)
-7. [Berechtigungen der Pipeline (wichtige Erkenntnisse)](#berechtigungen-der-pipeline-wichtige-erkenntnisse)
-8. [Deploy erneut testen / Fehler beheben](#deploy-erneut-testen--fehler-beheben)
-9. [YAML-Referenz (`gsa.gitops/v1`)](#yaml-referenz-gsagitopsv1)
-10. [Architektur & Repository](#architektur--repository)
-11. [Einmalige Einrichtung (Plattform-Team)](#einmalige-einrichtung-plattform-team)
-12. [Weiterführende Dokumentation](#weiterführende-dokumentation)
+7. [Nach dem Deploy: Portal & Clients (Pflicht für Nutzer)](#nach-dem-deploy-portal--clients-pflicht-für-nutzer)
+8. [Berechtigungen der Pipeline (wichtige Erkenntnisse)](#berechtigungen-der-pipeline-wichtige-erkenntnisse)
+9. [Deploy erneut testen / Fehler beheben](#deploy-erneut-testen--fehler-beheben)
+10. [YAML-Referenz (`gsa.gitops/v1`)](#yaml-referenz-gsagitopsv1)
+11. [Architektur & Repository](#architektur--repository)
+12. [Einmalige Einrichtung (Plattform-Team)](#einmalige-einrichtung-plattform-team)
+13. [Weiterführende Dokumentation](#weiterführende-dokumentation)
 
 ---
 
@@ -242,6 +243,24 @@ Bei **Update** werden fehlende Segmente/Zuweisungen ergänzt; optionale Flags k�
 
 ---
 
+## Nach dem Deploy: Portal & Clients (Pflicht für Nutzer)
+
+Die Pipeline legt die **Enterprise Application**, **Segmente**, **Connector-Group-Zuordnung** und die **Zuweisung an die Gruppe** (`spec.assignments`) an. Damit Endnutzer **tatsächlich** per Private Access zugreifen können, fehlen im Regelfall noch **mandantenweite** Schritte im Portal – die **nicht** aus der YAML kommen.
+
+| Schritt | Wo (Entra Admin Center) | Kurz |
+| --- | --- | --- |
+| **1** | Global Secure Access → Connectors | Connector Group + **aktiver** Connector (meist schon durch Netzwerk) |
+| **2** | Global Secure Access → Verbinden → **Datenverkehrsweiterleitung** | **Profil für privaten Zugriff** auf **Aktiviert** (oft initial **Deaktiviert**) |
+| **3** | Dieselbe Seite → Zuweisungen am Profil | Dieselbe **Gruppe** wie in YAML (z. B. `SEC-GSA-PA-…`) – **nicht** „0 Benutzer, 0 Gruppen“ |
+| **4** | Test-Client | **Global Secure Access Client** installieren, wenn `isAccessibleViaZTNAClient: true` |
+
+**Wichtig:** Die Gruppe in `spec.assignments` (GitOps → **Unternehmensanwendung**) und die Gruppe am **Datenverkehrsprofil** sind **zwei getrennte Zuweisungen** – beide werden benötigt.
+
+**Ausführlich** (Checklisten, Symptome, Screenshots-Pfade, Lab-Test):  
+→ [`docs/operations/portal-configuration-after-deploy.md`](docs/operations/portal-configuration-after-deploy.md)
+
+---
+
 ## Berechtigungen der Pipeline (wichtige Erkenntnisse)
 
 ### Pflicht: `OnPremisesPublishingProfiles.ReadWrite.All` (Application permission)
@@ -288,6 +307,8 @@ Details: `docs/security/authentication-and-permissions.md`
 | Graph **403** auf `PATCH …/applications/…` | **`OnPremisesPublishingProfiles.ReadWrite.All`** + Admin Consent; ggf. Application Administrator am SP |
 | Connector Group nicht gefunden | Name in YAML = Name in Entra; Gruppe manuell angelegt? |
 | Gruppe für Zuweisung | `principalName` muss existieren oder `principalId` nutzen |
+| Deploy grün, Zugriff geht nicht | Datenverkehrsprofil **Privater Zugriff** aktivieren + Gruppe am Profil; GSA Client → [`portal-configuration-after-deploy.md`](docs/operations/portal-configuration-after-deploy.md) |
+| Segment-Duplikat (`Invalid_AppSegments_NonwebApp_Duplicate`) | Andere App im Tenant mit gleicher IP+Port löschen → `docs/troubleshooting/common-issues.md` |
 | OIDC / Login failed | Federated Credential Subject = `repo:…:environment:production` |
 | Variables | `AZURE_TENANT_ID`, `GSA_GRAPH_CLIENT_ID` exakt in GitHub |
 
@@ -383,6 +404,7 @@ Kurzcheckliste – Details in `docs/security/authentication-and-permissions.md`:
 | --- | --- |
 | Security / OIDC / Rollen | `docs/security/authentication-and-permissions.md` |
 | Troubleshooting (403, Connector, …) | `docs/troubleshooting/common-issues.md` |
+| **Portal nach Deploy (Profil, Client, Checkliste)** | **`docs/operations/portal-configuration-after-deploy.md`** |
 | Onboarding Engineers | `docs/onboarding/engineer-guide.md` |
 | Governance | `docs/governance/model.md` |
 | Runbook / Rollback | `docs/operations/runbook.md` |

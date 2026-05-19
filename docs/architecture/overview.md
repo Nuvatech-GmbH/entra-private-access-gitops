@@ -23,6 +23,16 @@ Die Automatisierung folgt den dokumentierten Schritten:
 
 Quelle (Stand Dokumentation): [Configure Microsoft Entra Private Access using Microsoft Graph APIs](https://learn.microsoft.com/en-us/graph/tutorial-entra-private-access)
 
+## Außerhalb von Graph / GitOps (Portal & Clients)
+
+Diese Automatisierung deckt die **Anwendungsdefinition** ab. Für produktiven Nutzerzugriff sind zusätzlich typischerweise erforderlich:
+
+- Aktivierung des **Datenverkehrsprofils für privaten Zugriff** (Global Secure Access)
+- **Zuweisungen** von Benutzern/Gruppen an dieses Profil (getrennt von `appRoleAssignments` an der Enterprise App)
+- **Global Secure Access Client** auf Endgeräten (bei `isAccessibleViaZTNAClient: true`)
+
+Details: [`docs/operations/portal-configuration-after-deploy.md`](../operations/portal-configuration-after-deploy.md)
+
 ## Abstraktionsschicht
 
 | Schicht | Verantwortung |

@@ -12,6 +12,16 @@ Microsoft dokumentiert zentrale Private Access Schritte aktuell auf `beta`. Die 
 
 Ja, `spec.applicationType: quickAccess` mappt auf `quickaccessapp`. DNS-Resolution Flags sind im Schema optional dokumentiert.
 
+## Reicht Connector Group + grüner Pipeline-Deploy für Nutzerzugriff?
+
+**Nein.** Die Pipeline konfiguriert die **Enterprise Application** (Segmente, Connector-Zuordnung, Gruppe an der App). Zusätzlich brauchen Sie im Mandanten typischerweise:
+
+- **Datenverkehrsprofil für privaten Zugriff** → **aktiviert**
+- **Gruppen-Zuweisung an diesem Profil** (getrennt von `spec.assignments`)
+- **Global Secure Access Client** auf den Endgeräten (bei `isAccessibleViaZTNAClient: true`)
+
+Siehe [`docs/operations/portal-configuration-after-deploy.md`](operations/portal-configuration-after-deploy.md).
+
 ## Wie verhindern wir parallele konkurrierende PRs?
 
 Organisatorisch durch Teamprozesse; technisch durch:

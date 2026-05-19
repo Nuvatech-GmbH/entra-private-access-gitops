@@ -4,6 +4,7 @@
 
 - Merge nach `main` löst `deploy-production.yml` aus.
 - Voraussetzung: GitHub Environment `production` ist mit **Required Reviewers** konfiguriert.
+- **Nach grünem Deploy:** Mandantenweite GSA-Einstellungen (Datenverkehrsprofil, Profil-Zuweisungen, Clients) sind **nicht** Teil der Pipeline – siehe [`portal-configuration-after-deploy.md`](portal-configuration-after-deploy.md).
 
 ## Rollback
 
