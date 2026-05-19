@@ -21,6 +21,20 @@ Describe 'New-GSASegmentPayload' {
             ports    = @('3389')
             protocol = 'tcp'
         }
-        $payload.ports | Should -Be @('3389-3389')
+        @($payload.ports) | Should -Be @('3389-3389')
+    }
+}
+
+Describe 'ConvertTo-GSAGraphJson' {
+    It 'serialisiert ein einzelnes ports-Element als JSON-Array' {
+        $json = ConvertTo-GSAGraphJson -InputObject @{
+            destinationHost = '10.0.1.1'
+            destinationType = 'ipAddress'
+            port            = 0
+            ports           = @('3389-3389')
+            protocol        = 'tcp'
+        }
+        $json | Should -Match '"ports"\s*:\s*\['
+        $json | Should -Not -Match '"ports"\s*:\s*"3389-3389"'
     }
 }

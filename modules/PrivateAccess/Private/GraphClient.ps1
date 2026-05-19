@@ -52,6 +52,54 @@ function Get-GSAGraphErrorFromRecord {
     return @{ code = ''; message = ''; raw = ($parts -join ' | ') }
 }
 
+function ConvertTo-GSAGraphJsonPrepare {
+    param($Value)
+
+    if ($null -eq $Value) { return $null }
+
+    if ($Value -is [string] -or $Value -is [ValueType] -or $Value -is [guid]) {
+        return $Value
+    }
+
+    if ($Value -is [hashtable] -or $Value -is [System.Collections.IDictionary]) {
+        $out = [ordered]@{}
+        foreach ($key in $Value.Keys) {
+            $out[$key] = ConvertTo-GSAGraphJsonPrepare -Value $Value[$key]
+        }
+        return $out
+    }
+
+    if ($Value -is [System.Collections.IEnumerable]) {
+        $list = [System.Collections.Generic.List[object]]::new()
+        foreach ($item in $Value) {
+            $list.Add((ConvertTo-GSAGraphJsonPrepare -Value $item)) | Out-Null
+        }
+        return $list
+    }
+
+    return $Value
+}
+
+function Repair-GSAGraphJsonArrayProperties {
+    param([Parameter(Mandatory)][string]$Json)
+
+    # PowerShell ConvertTo-Json: Ein-Element-Liste wird oft zu "ports":"3389-3389" statt "ports":["3389-3389"]
+    $repaired = [regex]::Replace($Json, '"ports"\s*:\s*"([^"]+)"', '"ports":["$1"]')
+    return $repaired
+}
+
+function ConvertTo-GSAGraphJson {
+    <#
+    .SYNOPSIS
+    ConvertTo-Json mit korrekten JSON-Arrays (PowerShell serialisiert Ein-Element-Arrays sonst als Skalar).
+    #>
+    param([Parameter(Mandatory)][object]$InputObject)
+
+    $prepared = ConvertTo-GSAGraphJsonPrepare -Value $InputObject
+    $json = ConvertTo-Json -InputObject $prepared -Depth 30 -Compress
+    return (Repair-GSAGraphJsonArrayProperties -Json $json)
+}
+
 function Invoke-GSAGraphBetaRequest {
     [CmdletBinding()]
     param(
@@ -63,13 +111,15 @@ function Invoke-GSAGraphBetaRequest {
 
     Assert-MgConnected
 
+    $requestBodyJson = $null
     $params = @{
         Method      = $Method
         Uri         = $RelativeUri
         ErrorAction = 'Stop'
     }
     if ($null -ne $Body) {
-        $params['Body'] = ($Body | ConvertTo-Json -Depth 30)
+        $requestBodyJson = ConvertTo-GSAGraphJson -InputObject $Body
+        $params['Body'] = $requestBodyJson
         $params['ContentType'] = 'application/json'
     }
     if ($Headers.Count -gt 0) {
@@ -101,14 +151,16 @@ Typische Ursachen für Private Access (onPremisesPublishing):
         }
 
         if ($detail -match '\b400\b|Bad Request') {
+            $bodyLine = if ($requestBodyJson) { "`nGesendeter Request-Body: $requestBodyJson`n" } else { '' }
             throw @"
 Microsoft Graph lehnte die Anfrage ab ($Method $RelativeUri).
 ${codeLine}Details: $detail
-
+${bodyLine}
 Typische Ursachen für Application Segments:
-1) Ports müssen als Bereich angegeben werden, z. B. '3389-3389' statt nur '3389' (das Repo normalisiert einzelne Ports beim Deploy automatisch).
-2) destinationType passt nicht zum host (ipAddress vs. fqdn).
-3) Ungültiges protocol (tcp, udp, tcp,udp).
+1) Ports als Bereich '3389-3389' (einzelne Ports werden normalisiert).
+2) JSON: 'ports' muss ein Array sein – nicht '"ports":"3389-3389"' (PowerShell ConvertTo-Json-Bug; im Repo behoben).
+3) destinationType passt nicht zum host (ipAddress vs. fqdn).
+4) Ungültiges protocol (tcp, udp, tcp,udp).
 "@
         }
         throw
@@ -250,11 +302,17 @@ function New-GSASegmentPayload {
     param(
         [Parameter(Mandatory)][hashtable]$Destination
     )
+
+    $portList = [System.Collections.Generic.List[string]]::new()
+    foreach ($p in @($Destination.ports)) {
+        $portList.Add((ConvertTo-GSAGraphPortRange -Port ([string]$p))) | Out-Null
+    }
+
     return @{
         destinationHost = [string]$Destination.host
         destinationType = [string]$Destination.type
         port            = 0
-        ports           = @($Destination.ports | ForEach-Object { ConvertTo-GSAGraphPortRange -Port ([string]$_) })
+        ports           = $portList
         protocol        = [string]$Destination.protocol
     }
 }
