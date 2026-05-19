@@ -109,6 +109,7 @@
         "ports": {
           "type": "array",
           "minItems": 1,
+          "description": "Microsoft Graph erwartet Port-Bereiche, z. B. 3389-3389 (einzelne Ports wie 3389 werden beim Deploy normalisiert).",
           "items": {
             "type": "string",
             "pattern": "^(\\d+|\\d+-\\d+)$"

@@ -99,6 +99,18 @@ Typische Ursachen für Private Access (onPremisesPublishing):
 4) Halbfertige Ziel-App löschen (PA-NUVATECH-OFFICE-RDP-GERSTHOFEN). Pipeline-App sp-gsa-gitops-prod nicht löschen.
 "@
         }
+
+        if ($detail -match '\b400\b|Bad Request') {
+            throw @"
+Microsoft Graph lehnte die Anfrage ab ($Method $RelativeUri).
+${codeLine}Details: $detail
+
+Typische Ursachen für Application Segments:
+1) Ports müssen als Bereich angegeben werden, z. B. '3389-3389' statt nur '3389' (das Repo normalisiert einzelne Ports beim Deploy automatisch).
+2) destinationType passt nicht zum host (ipAddress vs. fqdn).
+3) Ungültiges protocol (tcp, udp, tcp,udp).
+"@
+        }
         throw
     }
 }
@@ -217,6 +229,23 @@ function Get-GSAApplicationById {
     return Invoke-GSARetryableOperation -Action { Invoke-GSAGraphBetaRequest -Method GET -RelativeUri $uri }
 }
 
+function ConvertTo-GSAGraphPortRange {
+    <#
+    .SYNOPSIS
+    Graph erwartet Port-Bereiche als "start-end", z. B. "3389-3389" statt "3389".
+    #>
+    param([Parameter(Mandatory)][string]$Port)
+
+    $p = $Port.Trim()
+    if ($p -match '^\d+$') {
+        return "$p-$p"
+    }
+    if ($p -match '^(\d+)-(\d+)$') {
+        return $p
+    }
+    throw "Ungültiges Port-Format '$Port'. Erwartet: '3389' oder '3389-3390'."
+}
+
 function New-GSASegmentPayload {
     param(
         [Parameter(Mandatory)][hashtable]$Destination
@@ -225,7 +254,7 @@ function New-GSASegmentPayload {
         destinationHost = [string]$Destination.host
         destinationType = [string]$Destination.type
         port            = 0
-        ports           = @($Destination.ports)
+        ports           = @($Destination.ports | ForEach-Object { ConvertTo-GSAGraphPortRange -Port ([string]$_) })
         protocol        = [string]$Destination.protocol
     }
 }

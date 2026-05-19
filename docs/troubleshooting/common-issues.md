@@ -31,6 +31,11 @@ Install-Module powershell-yaml -Scope CurrentUser
 
 Die Pipeline prüft diese Permission vor dem Deploy (`Test-GSAPipelineGraphAppPermissions`).
 
+## Graph 400 beim Application Segment (POST applicationSegments)
+
+- **Ports:** Graph erwartet `"3389-3389"`, nicht `"3389"`. Im Repo wird `3389` beim Deploy automatisch zu `3389-3389` normalisiert; in YAML kann beides stehen.
+- **host/type:** `destinationType: ipAddress` erfordert eine IP; `fqdn` einen Hostnamen.
+
 
 ### Welche App darf gelöscht werden?
 
