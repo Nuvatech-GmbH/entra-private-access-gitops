@@ -1,0 +1,25 @@
+apiVersion: gsa.gitops/v1
+kind: PrivateAccessApplication
+metadata:
+  name: PA-DEMO-SEGMENT-IPRANGE-START-END
+  description: "Demo: Zieltyp IP-Adressbereich (Start-IP bis End-IP) – typisch kleiner Server-Cluster ohne CIDR-Denke."
+  owners:
+    - platform@nuvatech.com
+  changeReference: DEMO-SEGMENT-IPRANGE-START-END-001
+  tags:
+    purpose: demo
+    segmentType: ipRange
+    environment: lab
+spec:
+  applicationType: enterprise
+  isAccessibleViaZTNAClient: true
+  connectorGroup: Office-Gersthofen
+  destinations:
+    # RFC5737 TEST-NET-3 – Format laut Graph: StartIP-EndIP
+    - host: "203.0.113.10-203.0.113.20"
+      type: ipRange
+      ports: ["22"]
+      protocol: tcp
+  assignments:
+    - principalType: Group
+      principalName: SEC-GSA-PA-DEMO-USERS

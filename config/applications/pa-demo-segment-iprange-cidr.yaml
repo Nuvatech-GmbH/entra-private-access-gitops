@@ -1,0 +1,25 @@
+apiVersion: gsa.gitops/v1
+kind: PrivateAccessApplication
+metadata:
+  name: PA-DEMO-SEGMENT-IPRANGE-CIDR
+  description: "Demo: Zieltyp IP-Adressbereich (CIDR) – typisch Subnetz mit mehreren Servern (z. B. SMB)."
+  owners:
+    - platform@nuvatech.com
+  changeReference: DEMO-SEGMENT-IPRANGE-CIDR-001
+  tags:
+    purpose: demo
+    segmentType: ipRangeCidr
+    environment: lab
+spec:
+  applicationType: enterprise
+  isAccessibleViaZTNAClient: true
+  connectorGroup: Office-Gersthofen
+  destinations:
+    # RFC5737 TEST-NET-2, kleines Subnetz (/28 = 16 Adressen)
+    - host: "198.51.100.0/28"
+      type: ipRangeCidr
+      ports: ["445"]
+      protocol: tcp
+  assignments:
+    - principalType: Group
+      principalName: SEC-GSA-PA-DEMO-USERS

@@ -1,0 +1,25 @@
+apiVersion: gsa.gitops/v1
+kind: PrivateAccessApplication
+metadata:
+  name: PA-DEMO-SEGMENT-FQDN
+  description: "Demo: Zieltyp FQDN – typisch HTTPS-Portale, interne Web-Apps, benannte Server."
+  owners:
+    - platform@nuvatech.com
+  changeReference: DEMO-SEGMENT-FQDN-001
+  tags:
+    purpose: demo
+    segmentType: fqdn
+    environment: lab
+spec:
+  applicationType: enterprise
+  isAccessibleViaZTNAClient: true
+  connectorGroup: Office-Gersthofen
+  destinations:
+    # Im Lab: DNS-Eintrag oder hosts-Datei auf Connector-Seite/Zielnetz anpassen
+    - host: demo-web.nuvatech.internal
+      type: fqdn
+      ports: ["443"]
+      protocol: tcp
+  assignments:
+    - principalType: Group
+      principalName: SEC-GSA-PA-DEMO-USERS

@@ -410,6 +410,7 @@ Kurzcheckliste – Details in `docs/security/authentication-and-permissions.md`:
 | Governance | `docs/governance/model.md` |
 | Runbook / Rollback | `docs/operations/runbook.md` |
 | Beispiel-Change | `docs/examples/sample-change.md` |
+| Demo: 4 Segment-Typen (IP, FQDN, CIDR, IP–IP) | `docs/examples/demo-application-segments.md` |
 | FAQ | `docs/FAQ.md` |
 
 ---
