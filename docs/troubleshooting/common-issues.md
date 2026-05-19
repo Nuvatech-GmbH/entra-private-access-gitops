@@ -33,8 +33,11 @@ Die Pipeline prüft diese Permission vor dem Deploy (`Test-GSAPipelineGraphAppPe
 
 ## Graph 400 beim Application Segment (POST applicationSegments)
 
-- **Ports:** Graph erwartet `"3389-3389"`, nicht `"3389"`. Im Repo wird `3389` beim Deploy automatisch zu `3389-3389` normalisiert; in YAML kann beides stehen.
-- **host/type:** `destinationType: ipAddress` erfordert eine IP; `fqdn` einen Hostnamen.
+- **Ports:** Graph erwartet `"3389-3389"`, nicht `"3389"`. Im Repo wird `3389` beim Deploy automatisch zu `3389-3389` normalisiert.
+- **RDP auf feste IP:** In YAML `type: ipRangeCidr` und `host: 10.0.1.1/32` verwenden (zuverlässiger als `ipAddress` + `10.0.1.1`).
+- **Payload:** Kein `@odata.type` im POST (Microsoft Learn); die Pipeline probiert automatisch Varianten.
+- **Connector Group** muss mindestens einen **aktiven** Connector enthalten.
+- **host/type:** `fqdn` erfordert einen Hostnamen; CIDR-Notation nur mit `ipRangeCidr`.
 
 
 ### Welche App darf gelöscht werden?

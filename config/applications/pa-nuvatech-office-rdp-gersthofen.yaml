@@ -15,8 +15,9 @@ spec:
   isAccessibleViaZTNAClient: true
   connectorGroup: Office-Gersthofen
   destinations:
-    - host: "10.0.1.1"
-      type: ipAddress
+    # ipRangeCidr /32 ist für RDP auf eine feste IP zuverlässiger als ipAddress (Graph ipApplicationSegment)
+    - host: "10.0.1.1/32"
+      type: ipRangeCidr
       ports: ["3389-3389"]
       protocol: tcp
   assignments:

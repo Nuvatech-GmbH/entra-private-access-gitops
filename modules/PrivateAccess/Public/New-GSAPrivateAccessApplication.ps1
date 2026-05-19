@@ -54,9 +54,9 @@ function New-GSAPrivateAccessApplication {
     Invoke-GSARetryableOperation -Action { Invoke-GSAGraphBetaRequest -Method PUT -RelativeUri $putCgUri -Body @{ '@odata.id' = $cgOdataId } } | Out-Null
 
     foreach ($dest in @($spec.destinations)) {
-        $segUri = "https://graph.microsoft.com/beta/applications/$applicationId/onPremisesPublishing/segmentsConfiguration/microsoft.graph.ipSegmentConfiguration/applicationSegments"
-        $payload = New-GSASegmentPayload -Destination $dest
-        Invoke-GSARetryableOperation -Action { Invoke-GSAGraphBetaRequest -Method POST -RelativeUri $segUri -Body $payload } | Out-Null
+        Invoke-GSARetryableOperation -Action {
+            Add-GSAApplicationSegment -ApplicationId $applicationId -Destination $dest -CorrelationId $CorrelationId
+        } | Out-Null
     }
 
     $userRoleId = Get-GSADefaultUserAppRoleId -ServicePrincipalId $spId

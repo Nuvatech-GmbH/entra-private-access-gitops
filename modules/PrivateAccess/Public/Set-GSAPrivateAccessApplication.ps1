@@ -73,25 +73,11 @@ function Set-GSAPrivateAccessApplication {
 
     foreach ($d in $desired) {
         $sig = Get-GSADestinationSignatureFromSpec -Destination $d
-        $segUriBase = "https://graph.microsoft.com/beta/applications/$applicationId/onPremisesPublishing/segmentsConfiguration/microsoft.graph.ipSegmentConfiguration/applicationSegments"
         if ($existingBySig.ContainsKey($sig)) { continue }
 
-        $maybeHostMatch = @($existingSegs) | Where-Object {
-            $_.destinationHost -eq [string]$d.host -and $_.destinationType -eq [string]$d.type
-        } | Select-Object -First 1
-
-        $payload = New-GSASegmentPayload -Destination $d
-        if ($maybeHostMatch) {
-            $patchSegUri = "$segUriBase/$($maybeHostMatch.id)"
-            $patchBody = @{
-                ports    = @($d.ports)
-                protocol = [string]$d.protocol
-            }
-            Invoke-GSARetryableOperation -Action { Invoke-GSAGraphBetaRequest -Method PATCH -RelativeUri $patchSegUri -Body $patchBody } | Out-Null
-        }
-        else {
-            Invoke-GSARetryableOperation -Action { Invoke-GSAGraphBetaRequest -Method POST -RelativeUri $segUriBase -Body $payload } | Out-Null
-        }
+        Invoke-GSARetryableOperation -Action {
+            Add-GSAApplicationSegment -ApplicationId $applicationId -Destination $d -CorrelationId $CorrelationId
+        } | Out-Null
     }
 
     if ($RemoveAbsentSegments) {

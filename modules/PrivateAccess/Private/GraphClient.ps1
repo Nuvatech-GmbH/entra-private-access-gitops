@@ -334,28 +334,134 @@ function ConvertTo-GSAGraphPortRange {
     throw "Ungültiges Port-Format '$Port'. Erwartet: '3389' oder '3389-3390'."
 }
 
+function Get-GSAGraphSegmentDestinationCandidates {
+    <#
+    .SYNOPSIS
+    Liefert destinationHost/destinationType-Varianten (Graph ist bei IP-RDP oft mit ipRangeCidr /32 strikter).
+    #>
+    param([Parameter(Mandatory)][hashtable]$Destination)
+
+    $hostValue = [string]$Destination.host
+    $typeValue = [string]$Destination.type
+    $seen = @{}
+    $candidates = [System.Collections.Generic.List[hashtable]]::new()
+
+    $addCandidate = {
+        param($DestHost, $DestType)
+        $key = "$DestHost|$DestType"
+        if (-not $seen.ContainsKey($key)) {
+            $seen[$key] = $true
+            $candidates.Add(@{ destinationHost = $DestHost; destinationType = $DestType }) | Out-Null
+        }
+    }
+
+    & $addCandidate $hostValue $typeValue
+
+    if ($typeValue -eq 'ipAddress' -and $hostValue -match '^(?:\d{1,3}\.){3}\d{1,3}$') {
+        & $addCandidate "$hostValue/32" 'ipRangeCidr'
+    }
+
+    return @($candidates)
+}
+
 function New-GSASegmentPayload {
     param(
-        [Parameter(Mandatory)][hashtable]$Destination
+        [Parameter(Mandatory)][string]$DestinationHost,
+        [Parameter(Mandatory)][string]$DestinationType,
+        [Parameter(Mandatory)]$Ports,
+        [Parameter(Mandatory)][string]$Protocol,
+        [switch]$IncludeDeprecatedPort
     )
 
     $portList = [System.Collections.Generic.List[string]]::new()
-    foreach ($p in @($Destination.ports)) {
+    foreach ($p in @($Ports)) {
         $portList.Add((ConvertTo-GSAGraphPortRange -Port ([string]$p))) | Out-Null
     }
 
-    $protocol = [string]$Destination.protocol
-    if ($protocol -eq 'tcp,udp') {
+    if ($Protocol -eq 'tcp,udp') {
         throw "protocol 'tcp,udp' wird von ipApplicationSegment nicht unterstützt. Legen Sie zwei destinations an (tcp und udp) oder nutzen Sie nur tcp/udp."
     }
 
-    return @{
-        '@odata.type'     = '#microsoft.graph.ipApplicationSegment'
-        destinationHost   = [string]$Destination.host
-        destinationType   = [string]$Destination.type
-        ports             = $portList
-        protocol          = $protocol
+    # Microsoft Learn Beispiele: kein @odata.type im POST; port:0 noch in API-Beispielen
+    $body = @{
+        destinationHost = $DestinationHost
+        destinationType = $DestinationType
+        ports           = $portList
+        protocol        = $Protocol
     }
+    if ($IncludeDeprecatedPort) {
+        $body['port'] = 0
+    }
+    return $body
+}
+
+function Add-GSAApplicationSegment {
+    param(
+        [Parameter(Mandatory)][string]$ApplicationId,
+        [Parameter(Mandatory)][hashtable]$Destination,
+        [Parameter(Mandatory)][string]$CorrelationId
+    )
+
+    $sigDesired = Get-GSADestinationSignatureFromSpec -Destination $Destination
+    $existing = Get-GSAApplicationSegments -ApplicationId $ApplicationId
+    foreach ($s in $existing) {
+        $sig = Get-GSASegmentSignature -DestinationHost $s.destinationHost -DestinationType $s.destinationType -Protocol $s.protocol -Ports $s.ports
+        if ($sig -eq $sigDesired) {
+            Write-GSAStructuredLog -Level 'Information' -CorrelationId $CorrelationId -Message 'Application Segment existiert bereits – übersprungen.' -Data @{
+                applicationId = $ApplicationId
+                signature     = $sigDesired
+            }
+            return $s
+        }
+    }
+
+    $segUri = "https://graph.microsoft.com/beta/applications/$ApplicationId/onPremisesPublishing/segmentsConfiguration/microsoft.graph.ipSegmentConfiguration/applicationSegments"
+    $protocol = [string]$Destination.protocol
+    $errors = [System.Collections.Generic.List[string]]::new()
+
+    foreach ($dest in (Get-GSAGraphSegmentDestinationCandidates -Destination $Destination)) {
+        $variants = @(
+            @{ label = 'standard'; includePort = $false },
+            @{ label = 'mit port:0'; includePort = $true }
+        )
+        foreach ($variant in $variants) {
+            $payload = New-GSASegmentPayload -DestinationHost $dest.destinationHost -DestinationType $dest.destinationType `
+                -Ports $Destination.ports -Protocol $protocol -IncludeDeprecatedPort:($variant.includePort)
+            $json = ConvertTo-GSAGraphJson -InputObject $payload
+            Write-GSAStructuredLog -Level 'Information' -CorrelationId $CorrelationId -Message 'Versuche Application Segment POST' -Data @{
+                variant = $variant.label
+                host    = $dest.destinationHost
+                type    = $dest.destinationType
+                body    = $json
+            }
+            try {
+                $created = Invoke-GSAGraphBetaRequest -Method POST -RelativeUri $segUri -Body $payload
+                Write-GSAStructuredLog -Level 'Information' -CorrelationId $CorrelationId -Message 'Application Segment erstellt.' -Data @{
+                    segmentId       = $created.id
+                    destinationHost = $dest.destinationHost
+                    destinationType = $dest.destinationType
+                }
+                return $created
+            }
+            catch {
+                $graphErr = Get-GSAGraphErrorFromRecord -ErrorRecord $_
+                $errors.Add("$($variant.label) [$($dest.destinationType) $($dest.destinationHost)]: code=$($graphErr.code) msg=$($graphErr.message)") | Out-Null
+            }
+        }
+    }
+
+    throw @"
+Application Segment konnte nicht erstellt werden (ApplicationId: $ApplicationId).
+Ziel aus YAML: host=$($Destination.host) type=$($Destination.type) ports=$($Destination.ports -join ',') protocol=$protocol
+
+Versuche und Graph-Antworten:
+$($errors -join "`n")
+
+Hinweise:
+- Für RDP auf eine einzelne IP empfiehlt sich in YAML: type ipRangeCidr, host 10.0.1.1/32
+- Connector Group muss mindestens einen aktiven Connector enthalten
+- Private Access / Entra Suite Lizenz im Tenant aktiv
+"@
 }
 
 function Get-GSASegmentSignature {

@@ -14,16 +14,22 @@ Describe 'ConvertTo-GSAGraphPortRange' {
 }
 
 Describe 'New-GSASegmentPayload' {
-    It 'normalisiert ports im Segment-Payload' {
-        $payload = New-GSASegmentPayload -Destination @{
-            host     = '10.0.1.1'
-            type     = 'ipAddress'
-            ports    = @('3389')
-            protocol = 'tcp'
-        }
+    It 'normalisiert ports im Segment-Payload (Microsoft-Format ohne @odata.type)' {
+        $payload = New-GSASegmentPayload -DestinationHost '10.0.1.1/32' -DestinationType 'ipRangeCidr' -Ports @('3389') -Protocol 'tcp'
         @($payload.ports) | Should -Be @('3389-3389')
-        $payload.ContainsKey('port') | Should -BeFalse
-        $payload['@odata.type'] | Should -Be '#microsoft.graph.ipApplicationSegment'
+        $payload.ContainsKey('@odata.type') | Should -BeFalse
+        $payload.destinationHost | Should -Be '10.0.1.1/32'
+    }
+}
+
+Describe 'Get-GSAGraphSegmentDestinationCandidates' {
+    It 'bietet ipRangeCidr/32 als Fallback für einzelne IPv4' {
+        $c = Get-GSAGraphSegmentDestinationCandidates -Destination @{
+            host = '10.0.1.1'
+            type = 'ipAddress'
+        }
+        @($c | ForEach-Object { $_.destinationType }) | Should -Contain 'ipAddress'
+        @($c | ForEach-Object { $_.destinationType }) | Should -Contain 'ipRangeCidr'
     }
 }
 
