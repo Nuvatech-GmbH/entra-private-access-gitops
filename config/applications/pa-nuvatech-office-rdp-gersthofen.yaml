@@ -16,7 +16,7 @@ spec:
   connectorGroup: Office-Gersthofen
   destinations:
     # ipRangeCidr /32 ist für RDP auf eine feste IP zuverlässiger als ipAddress (Graph ipApplicationSegment)
-    - host: "10.0.1.1/32"
+    - host: "100.90.219.4/32"
       type: ipRangeCidr
       ports: ["3389-3389"]
       protocol: tcp
