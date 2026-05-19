@@ -22,14 +22,19 @@ function New-GSAPrivateAccessApplication {
     $created = Invoke-GSARetryableOperation -Action { Invoke-GSAGraphBetaRequest -Method POST -RelativeUri $templateUri -Body $createBody }
 
     $applicationId = [string]$created.application.id
-    $spId = [string]$created.servicePrincipal.id
+    $applicationAppId = [string]$created.application.appId
+    $instantiateSpId = $null
+    if ($created.servicePrincipal) {
+        $instantiateSpId = [string]$created.servicePrincipal.id
+    }
+    $spId = Resolve-GSAServicePrincipalId -ServicePrincipalId $instantiateSpId -ApplicationAppId $applicationAppId -CorrelationId $CorrelationId
 
     $appType = ConvertTo-GSAGraphApplicationType -ApplicationType ([string]$spec.applicationType)
     $pipelineSpId = $null
     $ctx = Get-MgContext -ErrorAction SilentlyContinue
     if ($ctx -and $ctx.ClientId) {
         $ourFilter = "appId eq '$($ctx.ClientId)'"
-        $ourUri = "https://graph.microsoft.com/v1.0/servicePrincipals?`$filter=$([uri]::EscapeDataString($ourFilter))&`$select=id"
+        $ourUri = Format-GSAGraphResourceUri 'https://graph.microsoft.com/v1.0/servicePrincipals?$filter={0}&$select=id' ([uri]::EscapeDataString($ourFilter))
         $ourSp = Invoke-GSARetryableOperation -Action { Invoke-GSAGraphBetaRequest -Method GET -RelativeUri $ourUri }
         if ($ourSp.value -and $ourSp.value.Count -gt 0) {
             $pipelineSpId = [string]$ourSp.value[0].id
@@ -75,7 +80,7 @@ function New-GSAPrivateAccessApplication {
             appRoleId     = $userRoleId.ToString()
             resourceId    = $spId
         }
-        $assignUri = "https://graph.microsoft.com/beta/servicePrincipals/$spId/appRoleAssignments"
+        $assignUri = Format-GSAGraphResourceUri 'https://graph.microsoft.com/beta/servicePrincipals/{0}/appRoleAssignments' $spId
         Invoke-GSARetryableOperation -Action { Invoke-GSAGraphBetaRequest -Method POST -RelativeUri $assignUri -Body $assignmentBody } | Out-Null
     }
 

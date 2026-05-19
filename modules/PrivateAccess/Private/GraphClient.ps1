@@ -133,6 +133,19 @@ function ConvertTo-GSAGraphJson {
     return (Repair-GSAGraphJsonArrayProperties -Json $json)
 }
 
+function Format-GSAGraphResourceUri {
+    <#
+    .SYNOPSIS
+    Baut Graph-URLs mit [string]::Format, damit $filter/$select in OData-Query-Strings nicht als PowerShell-Variablen expandieren.
+    #>
+    param(
+        [Parameter(Mandatory)][string]$Template,
+        [object[]]$FormatArguments = @()
+    )
+
+    return [string]::Format($Template, $FormatArguments)
+}
+
 function Invoke-GSAGraphBetaRequest {
     [CmdletBinding()]
     param(
@@ -188,15 +201,29 @@ Typische Ursachen für Private Access (onPremisesPublishing):
 
         if ($detail -match '\b400\b|Bad Request') {
             $bodyLine = if ($requestBodyJson) { "`nGesendeter Request-Body: $requestBodyJson`n" } else { '' }
-            throw @"
-Microsoft Graph lehnte die Anfrage ab ($Method $RelativeUri).
-${codeLine}Details: $detail
-${bodyLine}
+            $segmentHints = if ($RelativeUri -match 'applicationSegments') {
+                @"
+
 Typische Ursachen für Application Segments:
 1) Fehlende Graph Application permission 'Application.ReadWrite.All' (Admin Consent) – für Segmente laut Microsoft Learn erforderlich.
 2) Ports als Bereich '3389-3389'; JSON-Feld 'ports' muss ein Array sein.
 3) protocol nur 'tcp' oder 'udp' (nicht 'tcp,udp' für ipApplicationSegment).
 4) destinationType passt nicht zum host (ipAddress vs. fqdn).
+"@
+            }
+            elseif ($RelativeUri -match 'servicePrincipals/\$select|servicePrincipals/\?') {
+                @"
+
+Typische Ursachen für Service-Principal-Operationen:
+1) Die Service-Principal-ID der Ziel-App fehlt (instantiate-Response ohne servicePrincipal.id) – Pipeline lädt die ID per appId nach.
+2) OData-Query-Parameter ($select, $filter) dürfen in der URI nicht als Pfadsegment landen.
+"@
+            }
+            else { '' }
+            throw @"
+Microsoft Graph lehnte die Anfrage ab ($Method $RelativeUri).
+${codeLine}Details: $detail
+${bodyLine}${segmentHints}
 "@
         }
         throw
@@ -221,7 +248,7 @@ function Get-GSAConnectorGroupByName {
     $escaped = $Name.Replace("'", "''")
     $filter = "name eq '$escaped'"
     $encoded = [System.Uri]::EscapeDataString($filter)
-    $uri = "https://graph.microsoft.com/beta/onPremisesPublishingProfiles/applicationProxy/connectorGroups?`$filter=$encoded"
+    $uri = Format-GSAGraphResourceUri 'https://graph.microsoft.com/beta/onPremisesPublishingProfiles/applicationProxy/connectorGroups?$filter={0}' $encoded
 
     $resp = Invoke-GSARetryableOperation -Action { Invoke-GSAGraphBetaRequest -Method GET -RelativeUri $uri }
     if (-not $resp.value -or $resp.value.Count -eq 0) {
@@ -233,10 +260,44 @@ function Get-GSAConnectorGroupByName {
     return $resp.value[0]
 }
 
+function Resolve-GSAServicePrincipalId {
+    param(
+        [string]$ServicePrincipalId,
+        [string]$ApplicationAppId,
+        [Parameter(Mandatory)][string]$CorrelationId
+    )
+
+    if (-not [string]::IsNullOrWhiteSpace($ServicePrincipalId)) {
+        return $ServicePrincipalId.Trim()
+    }
+
+    if ([string]::IsNullOrWhiteSpace($ApplicationAppId)) {
+        throw 'Service-Principal-ID fehlt: Die Template-Instantiate-Response enthielt keine servicePrincipal.id und es wurde keine application.appId übergeben.'
+    }
+
+    $filter = [uri]::EscapeDataString("appId eq '$ApplicationAppId'")
+    $uri = Format-GSAGraphResourceUri 'https://graph.microsoft.com/v1.0/servicePrincipals?$filter={0}&$select=id' $filter
+    $resp = Invoke-GSARetryableOperation -Action { Invoke-GSAGraphBetaRequest -Method GET -RelativeUri $uri }
+    if (-not $resp.value -or $resp.value.Count -eq 0) {
+        throw "Service Principal für appId '$ApplicationAppId' wurde nicht gefunden."
+    }
+
+    $resolvedId = [string]$resp.value[0].id
+    Write-GSAStructuredLog -Level 'Information' -CorrelationId $CorrelationId -Message 'Service Principal nach appId aufgelöst (instantiate ohne servicePrincipal.id).' -Data @{
+        applicationAppId   = $ApplicationAppId
+        servicePrincipalId = $resolvedId
+    }
+    return $resolvedId
+}
+
 function Get-GSADefaultUserAppRoleId {
     param([Parameter(Mandatory)][string]$ServicePrincipalId)
 
-    $uri = "https://graph.microsoft.com/beta/servicePrincipals/$ServicePrincipalId?`$select=id,appRoles"
+    if ([string]::IsNullOrWhiteSpace($ServicePrincipalId)) {
+        throw 'ServicePrincipalId ist leer; die AppRole ''User'' kann nicht ermittelt werden.'
+    }
+
+    $uri = Format-GSAGraphResourceUri 'https://graph.microsoft.com/beta/servicePrincipals/{0}?$select=id,appRoles' $ServicePrincipalId
     $sp = Invoke-GSARetryableOperation -Action { Invoke-GSAGraphBetaRequest -Method GET -RelativeUri $uri }
     $role = $sp.appRoles | Where-Object { $_.displayName -eq 'User' -and $_.isEnabled -eq $true } | Select-Object -First 1
     if (-not $role) {
@@ -263,7 +324,7 @@ function Resolve-GSAPrincipalId {
             $escaped = $PrincipalName.Replace("'", "''")
             $filter = "displayName eq '$escaped'"
             $q = [System.Uri]::EscapeDataString($filter)
-            $uri = "https://graph.microsoft.com/beta/groups?`$filter=$q&`$select=id,displayName"
+            $uri = Format-GSAGraphResourceUri 'https://graph.microsoft.com/beta/groups?$filter={0}&$select=id,displayName' $q
             $g = Invoke-GSARetryableOperation -Action { Invoke-GSAGraphBetaRequest -Method GET -RelativeUri $uri }
             if (-not $g.value -or $g.value.Count -eq 0) { throw "Gruppe nicht gefunden: '$PrincipalName'" }
             if ($g.value.Count -gt 1) {
@@ -286,7 +347,10 @@ function Get-GSAApplicationSegments {
 
 function Get-GSAAppRoleAssignmentsForResource {
     param([Parameter(Mandatory)][string]$ServicePrincipalId)
-    $uri = "https://graph.microsoft.com/beta/servicePrincipals/$ServicePrincipalId/appRoleAssignedTo"
+    if ([string]::IsNullOrWhiteSpace($ServicePrincipalId)) {
+        throw 'ServicePrincipalId ist leer; AppRole-Zuweisungen können nicht gelesen werden.'
+    }
+    $uri = Format-GSAGraphResourceUri 'https://graph.microsoft.com/beta/servicePrincipals/{0}/appRoleAssignedTo' $ServicePrincipalId
     $resp = Invoke-GSARetryableOperation -Action { Invoke-GSAGraphBetaRequest -Method GET -RelativeUri $uri }
     return @($resp.value)
 }
@@ -306,7 +370,7 @@ function Get-GSAApplicationByDisplayName {
     $escaped = $DisplayName.Replace("'", "''")
     $filter = "displayName eq '$escaped'"
     $q = [System.Uri]::EscapeDataString($filter)
-    $uri = "https://graph.microsoft.com/beta/applications?`$filter=$q&`$select=id,displayName,appId,onPremisesPublishing"
+    $uri = Format-GSAGraphResourceUri 'https://graph.microsoft.com/beta/applications?$filter={0}&$select=id,displayName,appId,onPremisesPublishing' $q
     $resp = Invoke-GSARetryableOperation -Action { Invoke-GSAGraphBetaRequest -Method GET -RelativeUri $uri }
     return @($resp.value)
 }

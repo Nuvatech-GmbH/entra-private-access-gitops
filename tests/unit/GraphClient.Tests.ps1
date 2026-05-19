@@ -33,6 +33,13 @@ Describe 'Get-GSAGraphSegmentDestinationCandidates' {
     }
 }
 
+Describe 'Format-GSAGraphResourceUri' {
+    It 'lässt OData-Query-Parameter unverändert' {
+        $uri = Format-GSAGraphResourceUri 'https://graph.microsoft.com/beta/servicePrincipals/{0}?$select=id,appRoles' '11111111-2222-3333-4444-555555555555'
+        $uri | Should -Be 'https://graph.microsoft.com/beta/servicePrincipals/11111111-2222-3333-4444-555555555555?$select=id,appRoles'
+    }
+}
+
 Describe 'ConvertTo-GSAGraphJson' {
     It 'serialisiert ein einzelnes ports-Element als JSON-Array' {
         $json = ConvertTo-GSAGraphJson -InputObject @{
