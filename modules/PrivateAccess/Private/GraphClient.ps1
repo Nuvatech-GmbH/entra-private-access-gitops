@@ -461,7 +461,8 @@ function Get-GSAApplicationByDisplayName {
     $escaped = $DisplayName.Replace("'", "''")
     $filter = "displayName eq '$escaped'"
     $q = [System.Uri]::EscapeDataString($filter)
-    $uri = Format-GSAGraphResourceUri 'https://graph.microsoft.com/beta/applications?$filter={0}&$select=id,displayName,appId,onPremisesPublishing' $q
+    # onPremisesPublishing in $select auf /applications?$filter=… führt zu InvalidGuid_BadRequest – Details per GET by id
+    $uri = Format-GSAGraphResourceUri 'https://graph.microsoft.com/beta/applications?$filter={0}&$select=id,displayName,appId' $q
     $resp = Invoke-GSARetryableOperation -Action { Invoke-GSAGraphBetaRequest -Method GET -RelativeUri $uri }
     return @($resp.value)
 }

@@ -2,14 +2,13 @@ apiVersion: gsa.gitops/v1
 kind: PrivateAccessApplication
 metadata:
   name: PA-DEMO-SEGMENT-FQDN
-  description: "Demo: Zieltyp FQDN – nuvadc01.nuvatech.de (vom Connector erreichbar, RDP 3389)."
+  description: "Demo FQDN – RDP zu nuvadc01.nuvatech.de (vom Connector erreichbar)."
   owners:
     - platform@nuvatech.com
   changeReference: DEMO-SEGMENT-FQDN-001
   tags:
     purpose: demo
     segmentType: fqdn
-    environment: lab
 spec:
   applicationType: enterprise
   isAccessibleViaZTNAClient: true
@@ -17,7 +16,7 @@ spec:
   destinations:
     - host: nuvadc01.nuvatech.de
       type: fqdn
-      ports: ["3389"]
+      ports: ["3389-3389"]
       protocol: tcp
   assignments:
     - principalType: Group

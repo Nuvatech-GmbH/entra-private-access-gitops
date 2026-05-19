@@ -1,55 +1,43 @@
 # Demo: vier Anwendungssegment-Typen (Private Access)
 
-Vier produktive YAML-Dateien unter `config/applications/` zeigen die **Zieltypen** aus dem Entra-Portal (Anwendungssegment erstellen) – jeweils als **eigene Enterprise-App**, damit Sie in Demos den Unterschied klar zeigen können.
+Vier YAML-Dateien unter `config/applications/` – je **ein Zieltyp**, **keine überlappenden IP+Port-Kombinationen** im Mandanten (wichtig für Graph).
 
-## Portal ↔ YAML ↔ Graph
+## Voraussetzungen (einmalig)
 
-| Portal (DE) | `spec.destinations[].type` | `host`-Beispiel (Demo) | Typischer Dienst |
-| --- | --- | --- | --- |
-| **IP-Adresse** | `ipAddress` | `192.0.2.10` | RDP `3389` |
-| **Vollqualifizierter Domänenname** | `fqdn` | `nuvadc01.nuvatech.de` | RDP `3389` (vom Connector erreichbar) |
-| **IP-Adressbereich (CIDR)** | `ipRangeCidr` | `198.51.100.0/28` | SMB `445` |
-| **IP-Adressbereich (IP zu IP)** | `ipRange` | `203.0.113.10-203.0.113.20` | SSH `22` |
-
-Graph-API-Werte: `ipAddress`, `fqdn`, `ipRangeCidr`, `ipRange` (siehe [ipApplicationSegment](https://learn.microsoft.com/en-us/graph/api/resources/ipapplicationsegment?view=graph-rest-beta)).
-
-## Dateien im Repository
-
-| Datei | `metadata.name` |
+| Punkt | Wert |
 | --- | --- |
-| `pa-demo-segment-ipaddress.yaml` | `PA-DEMO-SEGMENT-IPADDRESS` |
-| `pa-demo-segment-fqdn.yaml` | `PA-DEMO-SEGMENT-FQDN` |
-| `pa-demo-segment-iprange-cidr.yaml` | `PA-DEMO-SEGMENT-IPRANGE-CIDR` |
-| `pa-demo-segment-iprange-start-end.yaml` | `PA-DEMO-SEGMENT-IPRANGE-START-END` |
+| Connector Group | `Office-Gersthofen` (in allen YAMLs – anpassen falls anders) |
+| Gruppe | `SEC-GSA-PA-DEMO-USERS` in Entra anlegen + Demo-User |
+| GSA Profil | Privater Zugriff **aktiviert**, Gruppe zugewiesen → [`portal-configuration-after-deploy.md`](../operations/portal-configuration-after-deploy.md) |
+| Papierkorb | Alte Demo-Apps/`deletedItems` bereinigt → [`application-lifecycle-and-purge.md`](../operations/application-lifecycle-and-purge.md) |
 
-**Hinweis:** Dateien ohne `.example.yaml` werden bei Merge nach `main` **deployed**. Für reine Doku-Vorlagen kopieren Sie die Dateien lokal mit Endung `.example.yaml`.
+## Die vier Demo-Apps
 
-## Vor dem Rollout (Testtenant)
+| Portal-Zieltyp | Datei | App-Name | Ziel | Port | Demo-Szenario |
+| --- | --- | --- | --- | --- | --- |
+| **FQDN** | `pa-demo-segment-fqdn.yaml` | `PA-DEMO-SEGMENT-FQDN` | `nuvadc01.nuvatech.de` | 3389 | RDP zum echten DC (Connector-Test) |
+| **IP-Adresse** | `pa-demo-segment-ipaddress.yaml` | `PA-DEMO-SEGMENT-IPADDRESS` | `192.168.178.42` | 3389 | RDP zum Connector-Win-Server (Host-IP) |
+| **CIDR** | `pa-demo-segment-iprange-cidr.yaml` | `PA-DEMO-SEGMENT-IPRANGE-CIDR` | `10.0.2.0/28` | 389 | LDAP auf Subnetz |
+| **IP zu IP** | `pa-demo-segment-iprange-start-end.yaml` | `PA-DEMO-SEGMENT-IPRANGE-START-END` | `10.0.3.10-10.0.3.20` | 5985 | WinRM auf IP-Bereich |
 
-1. **Connector Group** `Office-Gersthofen` (oder in allen YAMLs auf Ihre Gruppe anpassen).
-2. **Gruppe** `SEC-GSA-PA-DEMO-USERS` in Entra ID anlegen und Demo-User hinzufügen.
-3. **Datenverkehrsprofil** „Privater Zugriff“ aktivieren + Gruppe zuweisen → [`portal-configuration-after-deploy.md`](../operations/portal-configuration-after-deploy.md).
-4. **GSA Client** auf Demo-Clients.
-5. **RFC5737-Adressen** (`192.0.2.x`, `198.51.100.x`, `203.0.113.x`) im Lab als Ziele/Loopback oder Test-VMs nutzen – sie sind **nicht** im öffentlichen Internet routbar.
-6. **Mandantenweite Eindeutigkeit:** Pro IP+Port nur **eine** App – bei `Invalid_AppSegments_NonwebApp_Duplicate` Papierkorb prüfen → [`application-lifecycle-and-purge.md`](../operations/application-lifecycle-and-purge.md).
+**Hinweis IP + FQDN:** `192.168.178.42:3389` (IP-Demo) und `nuvadc01.nuvatech.de:3389` (FQDN-Demo) kollidieren im Mandanten, wenn der FQDN **dieselbe IP** auflöst. Dann eine der beiden Apps anpassen oder nur eine mit Port 3389 deployen. Die übrigen Demos (`10.0.2.0/28:389`, `10.0.3.10-20:5985`) bleiben unabhängig.
 
-## Demo-Ablauf (Vorschlag)
+## Portal ↔ YAML
 
-1. Vier Apps nacheinander oder per einen PR nach `main` ausrollen lassen.
-2. Im Portal unter **Global Secure Access** → **Applications** die vier Enterprise Apps zeigen.
-3. Pro App ein Segment öffnen und **Zieltyp / Host / Ports** mit der YAML abgleichen.
-4. Optional: eine App live ändern (nur Ports in YAML) → zweiter Deploy zeigt GitOps-Reconcile.
-
-## Anpassungen für Ihre Umgebung
-
-| Feld | Empfehlung |
+| Portal (DE) | `spec.destinations[].type` |
 | --- | --- |
-| `spec.connectorGroup` | Name Ihrer echten Connector Group |
-| `assignments.principalName` | Ihre Demo-Gruppe, besser `principalId` (GUID) |
-| `owners` | Ihre Plattform-Mail |
-| `host` (FQDN) | `nuvadc01.nuvatech.de` (oder anderer vom Connector auflösbarer/erreichbarer Host) |
-| Produktiv-RDP | Weiterhin `pa-nuvatech-office-rdp-gersthofen.yaml` mit echter IP |
+| IP-Adresse | `ipAddress` |
+| Vollqualifizierter Domänenname | `fqdn` |
+| IP-Adressbereich (CIDR) | `ipRangeCidr` |
+| IP-Adressbereich (IP zu IP) | `ipRange` (`host`: `10.0.3.10-10.0.3.20`) |
 
-## Einzel-IP: `ipAddress` vs. `ipRangeCidr /32`
+## Deploy
 
-Für **eine** feste IPv4 (z. B. RDP) ist in der Praxis oft `ipRangeCidr` + `10.0.1.1/32` zuverlässiger als `ipAddress` (siehe Troubleshooting). Die Demo-Datei `pa-demo-segment-ipaddress.yaml` nutzt bewusst **`ipAddress`**, um den Portal-Typ 1:1 abzubilden; die Pipeline probiert bei Bedarf automatisch `/32` als Fallback.
+1. PR/Merge nach `main` → `deploy-production` deployt **alle** `pa-demo-*.yaml` (nicht `*.example.yaml`).
+2. Bei Fehler `Invalid_AppSegments_NonwebApp_Duplicate`: Konflikt-App aus Log + Papierkorb löschen.
+3. Nach Erfolg optional `metadata.graphApplicationId` in jede YAML eintragen (stabile Updates).
+
+## Anpassung an euer Netz
+
+- **`192.168.178.42`**: IP des Connector-Win-Servers – für die IP-Adress-Demo bewusst gewählt (lokal erreichbar).
+- **`10.0.2.0/28`**, **`10.0.3.10-20`**: Beispiel-Netze – anpassen, falls im Mandanten schon belegt oder vom Connector nicht geroutet.

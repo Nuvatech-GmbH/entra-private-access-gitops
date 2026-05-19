@@ -2,23 +2,22 @@ apiVersion: gsa.gitops/v1
 kind: PrivateAccessApplication
 metadata:
   name: PA-DEMO-SEGMENT-IPADDRESS
-  description: "Demo: Zieltyp IP-Adresse (einzelner Host) – typisch RDP/SSH auf einen Server."
+  description: "Demo IP-Adresse – Host des Private-Access-Connectors (Win-Server 192.168.178.42), RDP 3389."
   owners:
     - platform@nuvatech.com
   changeReference: DEMO-SEGMENT-IPADDRESS-001
   tags:
     purpose: demo
     segmentType: ipAddress
-    environment: lab
 spec:
   applicationType: enterprise
   isAccessibleViaZTNAClient: true
   connectorGroup: Office-Gersthofen
   destinations:
-    # RFC5737 TEST-NET-1 – nur für Demos/Lab, nicht routbar im Internet
-    - host: "192.0.2.10"
+    # IP des Connector-Win-Servers – vom Connector-Netz aus erreichbar (inkl. Loopback zum eigenen Host)
+    - host: "192.168.178.42"
       type: ipAddress
-      ports: ["3389"]
+      ports: ["3389-3389"]
       protocol: tcp
   assignments:
     - principalType: Group

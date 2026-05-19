@@ -26,7 +26,8 @@ function Get-GSAPrivateAccessApplication {
         $app = Get-GSAApplicationById -ApplicationId $apps[0].id
     }
 
-    $spUri = "https://graph.microsoft.com/beta/servicePrincipals?`$filter=appId eq '$($app.appId)'&`$select=id,appId,displayName"
+    $spFilter = [uri]::EscapeDataString("appId eq '$($app.appId)'")
+    $spUri = Format-GSAGraphResourceUri 'https://graph.microsoft.com/beta/servicePrincipals?$filter={0}&$select=id,appId,displayName' $spFilter
     $sps = Invoke-GSARetryableOperation -Action { Invoke-GSAGraphBetaRequest -Method GET -RelativeUri $spUri }
     $sp = @($sps.value) | Select-Object -First 1
 
