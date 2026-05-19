@@ -7,7 +7,7 @@ Vier produktive YAML-Dateien unter `config/applications/` zeigen die **Zieltypen
 | Portal (DE) | `spec.destinations[].type` | `host`-Beispiel (Demo) | Typischer Dienst |
 | --- | --- | --- | --- |
 | **IP-Adresse** | `ipAddress` | `192.0.2.10` | RDP `3389` |
-| **Vollqualifizierter Domänenname** | `fqdn` | `demo-web.nuvatech.internal` | HTTPS `443` |
+| **Vollqualifizierter Domänenname** | `fqdn` | `nuvadc01.nuvatech.de` | RDP `3389` (vom Connector erreichbar) |
 | **IP-Adressbereich (CIDR)** | `ipRangeCidr` | `198.51.100.0/28` | SMB `445` |
 | **IP-Adressbereich (IP zu IP)** | `ipRange` | `203.0.113.10-203.0.113.20` | SSH `22` |
 
@@ -47,7 +47,7 @@ Graph-API-Werte: `ipAddress`, `fqdn`, `ipRangeCidr`, `ipRange` (siehe [ipApplica
 | `spec.connectorGroup` | Name Ihrer echten Connector Group |
 | `assignments.principalName` | Ihre Demo-Gruppe, besser `principalId` (GUID) |
 | `owners` | Ihre Plattform-Mail |
-| `host` (FQDN) | Hostname, den Ihr Connector-Netz auflösen kann |
+| `host` (FQDN) | `nuvadc01.nuvatech.de` (oder anderer vom Connector auflösbarer/erreichbarer Host) |
 | Produktiv-RDP | Weiterhin `pa-nuvatech-office-rdp-gersthofen.yaml` mit echter IP |
 
 ## Einzel-IP: `ipAddress` vs. `ipRangeCidr /32`

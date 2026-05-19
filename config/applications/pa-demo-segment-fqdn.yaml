@@ -2,7 +2,7 @@ apiVersion: gsa.gitops/v1
 kind: PrivateAccessApplication
 metadata:
   name: PA-DEMO-SEGMENT-FQDN
-  description: "Demo: Zieltyp FQDN – typisch HTTPS-Portale, interne Web-Apps, benannte Server."
+  description: "Demo: Zieltyp FQDN – nuvadc01.nuvatech.de (vom Connector erreichbar, RDP 3389)."
   owners:
     - platform@nuvatech.com
   changeReference: DEMO-SEGMENT-FQDN-001
@@ -15,10 +15,9 @@ spec:
   isAccessibleViaZTNAClient: true
   connectorGroup: Office-Gersthofen
   destinations:
-    # Im Lab: DNS-Eintrag oder hosts-Datei auf Connector-Seite/Zielnetz anpassen
-    - host: demo-web.nuvatech.internal
+    - host: nuvadc01.nuvatech.de
       type: fqdn
-      ports: ["443"]
+      ports: ["3389"]
       protocol: tcp
   assignments:
     - principalType: Group

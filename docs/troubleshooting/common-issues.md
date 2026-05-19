@@ -49,6 +49,7 @@ Die Pipeline prüft diese Permission vor dem Deploy (`Test-GSAPipelineGraphAppPe
 - **Payload:** Kein `@odata.type` im POST (Microsoft Learn); die Pipeline probiert automatisch Varianten.
 - **Connector Group** muss mindestens einen **aktiven** Connector enthalten.
 - **host/type:** `fqdn` erfordert einen Hostnamen; CIDR-Notation nur mit `ipRangeCidr`.
+- **POST ohne Segment-ID / „kein Treffer per GET“:** Graph speichert Ports oft als `443-443`, YAML hat `443` – ab Repo-Fix werden Port-Signaturen normalisiert; bei Bedarf GET mit kurzer Wartezeit. Halbfertige App `PA-DEMO-…` ggf. löschen und erneut deployen.
 
 ### `Invalid_AppSegments_NonwebApp_Duplicate` (IP/Port bereits belegt)
 

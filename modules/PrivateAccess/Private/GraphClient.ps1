@@ -497,6 +497,28 @@ function Get-GSAGraphPortListFromSpec {
     return @($Ports)
 }
 
+function Get-GSASegmentSignature {
+    param(
+        [string]$DestinationHost,
+        [string]$DestinationType,
+        [string]$Protocol,
+        $Ports
+    )
+
+    $portRanges = [System.Collections.Generic.List[string]]::new()
+    foreach ($p in (Get-GSAGraphPortListFromSpec -Ports $Ports)) {
+        $portRanges.Add((ConvertTo-GSAGraphPortRange -Port ([string]$p))) | Out-Null
+    }
+    $portsNorm = ($portRanges | Sort-Object) -join ','
+    $hostNorm = ([string]$DestinationHost).Trim().ToLowerInvariant()
+    return ("$hostNorm|$DestinationType|$Protocol|$portsNorm").ToLowerInvariant()
+}
+
+function Get-GSADestinationSignatureFromSpec {
+    param([hashtable]$Destination)
+    return (Get-GSASegmentSignature -DestinationHost ([string]$Destination.host) -DestinationType ([string]$Destination.type) -Protocol ([string]$Destination.protocol) -Ports $Destination.ports)
+}
+
 function Find-GSAApplicationSegmentBySignature {
     param(
         [Parameter(Mandatory)][string]$ApplicationId,
@@ -507,6 +529,34 @@ function Find-GSAApplicationSegmentBySignature {
         $sig = Get-GSASegmentSignature -DestinationHost $s.destinationHost -DestinationType $s.destinationType -Protocol $s.protocol -Ports $s.ports
         if ($sig -eq $Signature) {
             return $s
+        }
+    }
+    return $null
+}
+
+function Get-GSASegmentIdFromGraphResponse {
+    param($Response)
+
+    if ($null -eq $Response) { return $null }
+    if ($Response.PSObject.Properties['id'] -and $Response.id) {
+        return [string]$Response.id
+    }
+    return $null
+}
+
+function Wait-GSAApplicationSegmentBySignature {
+    param(
+        [Parameter(Mandatory)][string]$ApplicationId,
+        [Parameter(Mandatory)][string]$Signature,
+        [int]$MaxAttempts = 5,
+        [int]$DelaySeconds = 2
+    )
+
+    for ($attempt = 1; $attempt -le $MaxAttempts; $attempt++) {
+        $found = Find-GSAApplicationSegmentBySignature -ApplicationId $ApplicationId -Signature $Signature
+        if ($found) { return $found }
+        if ($attempt -lt $MaxAttempts) {
+            Start-Sleep -Seconds $DelaySeconds
         }
     }
     return $null
@@ -614,31 +664,37 @@ function Add-GSAApplicationSegment {
             }
             try {
                 $created = Invoke-GSAGraphBetaRequest -Method POST -RelativeUri $segUri -Body $payload
-                if (-not $created) {
-                    throw 'Graph lieferte eine leere Antwort auf Application Segment POST.'
+                $segmentId = Get-GSASegmentIdFromGraphResponse -Response $created
+                $resolved = $null
+                if ($segmentId) {
+                    $resolved = $created
                 }
-                $segmentId = $null
-                if ($created.PSObject.Properties['id']) {
-                    $segmentId = [string]$created.id
-                }
-                if (-not $segmentId) {
-                    $found = Find-GSAApplicationSegmentBySignature -ApplicationId $ApplicationId -Signature $sigDesired
+                else {
+                    $found = Wait-GSAApplicationSegmentBySignature -ApplicationId $ApplicationId -Signature $sigDesired
                     if ($found) {
-                        Write-GSAStructuredLog -Level 'Information' -CorrelationId $CorrelationId -Message 'Application Segment erstellt (ID aus GET nachgelesen).' -Data @{
-                            segmentId       = $found.id
+                        $resolved = $found
+                        $segmentId = [string]$found.id
+                        Write-GSAStructuredLog -Level 'Information' -CorrelationId $CorrelationId -Message 'Application Segment erstellt (ID per GET/Reconcile, POST ohne id).' -Data @{
+                            segmentId       = $segmentId
                             destinationHost = $dest.destinationHost
                             destinationType = $dest.destinationType
+                            postResponse    = if ($created) { ($created | ConvertTo-Json -Compress -Depth 5) } else { '' }
                         }
-                        return $found
                     }
-                    throw 'Application Segment POST ohne Segment-ID in der Antwort und kein Treffer per GET.'
+                    else {
+                        $postPreview = if ($null -eq $created) { '<null>' } else { ($created | ConvertTo-Json -Compress -Depth 5) }
+                        throw "Application Segment POST ohne Segment-ID und kein Treffer per GET (Signatur: $sigDesired). POST-Antwort: $postPreview"
+                    }
+                }
+                if (-not $segmentId) {
+                    throw 'Application Segment konnte nicht aufgelöst werden.'
                 }
                 Write-GSAStructuredLog -Level 'Information' -CorrelationId $CorrelationId -Message 'Application Segment erstellt.' -Data @{
-                    segmentId       = $segmentId
-                    destinationHost = $dest.destinationHost
-                    destinationType = $dest.destinationType
+                    segmentId         = $segmentId
+                    destinationHost   = $dest.destinationHost
+                    destinationType   = $dest.destinationType
                 }
-                return $created
+                return $resolved
             }
             catch {
                 $errors.Add("$($variant.label) [$($dest.destinationType) $($dest.destinationHost)]: $(Get-GSAGraphErrorSummary -ErrorRecord $_)") | Out-Null
@@ -689,18 +745,3 @@ Hinweise:
 "@
 }
 
-function Get-GSASegmentSignature {
-    param(
-        [string]$DestinationHost,
-        [string]$DestinationType,
-        [string]$Protocol,
-        $Ports
-    )
-    $portsNorm = (@($Ports) | Sort-Object) -join ','
-    return ("$DestinationHost|$DestinationType|$Protocol|$portsNorm").ToLowerInvariant()
-}
-
-function Get-GSADestinationSignatureFromSpec {
-    param([hashtable]$Destination)
-    return (Get-GSASegmentSignature -DestinationHost ([string]$Destination.host) -DestinationType ([string]$Destination.type) -Protocol ([string]$Destination.protocol) -Ports @($Destination.ports))
-}

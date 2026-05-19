@@ -34,6 +34,14 @@ Describe 'Get-GSAGraphSegmentDestinationCandidates' {
 
 }
 
+Describe 'Get-GSASegmentSignature' {
+    It 'behandelt Einzelport und Graph-Bereich als gleiche Signatur' {
+        $fromYaml = Get-GSASegmentSignature -DestinationHost 'nuvadc01.nuvatech.de' -DestinationType 'fqdn' -Protocol 'tcp' -Ports @('3389')
+        $fromGraph = Get-GSASegmentSignature -DestinationHost 'nuvadc01.nuvatech.de' -DestinationType 'fqdn' -Protocol 'tcp' -Ports @('3389-3389')
+        $fromYaml | Should -Be $fromGraph
+    }
+}
+
 Describe 'Get-GSASegmentDuplicateConflictFromText' {
     It 'parst conflictingApplication aus Graph-Fehlertext' {
         $sample = @'
