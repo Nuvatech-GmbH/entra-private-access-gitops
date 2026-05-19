@@ -31,6 +31,23 @@ Describe 'Get-GSAGraphSegmentDestinationCandidates' {
         @($c | ForEach-Object { $_.destinationType }) | Should -Contain 'ipAddress'
         @($c | ForEach-Object { $_.destinationType }) | Should -Contain 'ipRangeCidr'
     }
+
+    It 'bietet ipAddress als Fallback für ipRangeCidr/32' {
+        $c = Get-GSAGraphSegmentDestinationCandidates -Destination @{
+            host = '10.0.1.1/32'
+            type = 'ipRangeCidr'
+        }
+        @($c | ForEach-Object { $_.destinationType }) | Should -Contain 'ipRangeCidr'
+        @($c | ForEach-Object { $_.destinationHost }) | Should -Contain '10.0.1.1'
+    }
+}
+
+Describe 'New-GSASegmentPayload mit port:0' {
+    It 'enthält port:0 wenn IncludeDeprecatedPort gesetzt' {
+        $payload = New-GSASegmentPayload -DestinationHost '10.0.1.1/32' -DestinationType 'ipRangeCidr' -Ports @('3389') -Protocol 'tcp' -IncludeDeprecatedPort
+        $payload.port | Should -Be 0
+        @($payload.ports) | Should -Be @('3389-3389')
+    }
 }
 
 Describe 'Format-GSAGraphResourceUri' {
