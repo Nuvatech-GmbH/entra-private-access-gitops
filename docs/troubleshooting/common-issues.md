@@ -39,6 +39,23 @@ Die Pipeline prüft diese Permission vor dem Deploy (`Test-GSAPipelineGraphAppPe
 - **Connector Group** muss mindestens einen **aktiven** Connector enthalten.
 - **host/type:** `fqdn` erfordert einen Hostnamen; CIDR-Notation nur mit `ipRangeCidr`.
 
+### `Invalid_AppSegments_NonwebApp_Duplicate` (IP/Port bereits belegt)
+
+**Symptom:** `IP address and port overlaps with existing segment on application` mit `conflictingApplication={ appId, objectId, ... }`.
+
+**Ursache:** Im **gesamten Mandanten** darf dieselbe IP+Port-Kombination (z. B. `10.0.1.1` + TCP `3389`) nur **einmal** als Private-Access-Segment existieren – nicht nur pro Anzeigename.
+
+Das passiert oft nach mehreren Test-Deploys: Sie löschen `PA-NUVATECH-OFFICE-RDP-GERSTHOFEN`, aber eine **ältere/halbfertige** App mit anderem Namen (manchmal nur GUID als Name) hält das Segment noch.
+
+**Lösung:**
+
+1. Im Entra-Portal → **Unternehmensanwendungen** → nach **objectId** oder **appId** aus der Fehlermeldung suchen (nicht nur nach `PA-NUVATECH-…`).
+2. Diese **Konflikt-App** löschen (Enterprise Application).
+3. Die **neu angelegte** App aus dem fehlgeschlagenen Lauf ebenfalls löschen (objectId/ApplicationId aus dem Pipeline-Log).
+4. Deploy erneut starten.
+
+**Alternative:** In der YAML eine andere `host`/`ports`-Kombination verwenden.
+
 
 ### Welche App darf gelöscht werden?
 

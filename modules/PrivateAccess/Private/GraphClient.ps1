@@ -98,6 +98,78 @@ function Get-GSAGraphErrorSummary {
     return [string]$ErrorRecord
 }
 
+function Get-GSASegmentDuplicateConflictFromText {
+    <#
+    .SYNOPSIS
+    Parst Invalid_AppSegments_NonwebApp_Duplicate (IP/Port bereits von anderer App im Mandanten).
+    #>
+    param([Parameter(Mandatory)][string]$Text)
+
+    if ($Text -notmatch 'Invalid_AppSegments_NonwebApp_Duplicate') {
+        return $null
+    }
+
+    $conflict = @{
+        appId     = ''
+        objectId  = ''
+        appName   = ''
+        graphCode = 'Invalid_AppSegments_NonwebApp_Duplicate'
+    }
+
+    if ($Text -match 'conflictingApplication=\{') {
+        $jsonFragment = $Text -replace '.*conflictingApplication=', ''
+        $jsonFragment = ($jsonFragment -split '\}', 2)[0] + '}'
+        $normalized = $jsonFragment -replace '\\"', '"'
+        try {
+            $parsed = $normalized | ConvertFrom-Json -ErrorAction Stop
+            $conflict.appId = [string]$parsed.appId
+            $conflict.objectId = [string]$parsed.objectId
+            $conflict.appName = [string]$parsed.appName
+            return $conflict
+        }
+        catch {
+            # Fallback: Regex
+        }
+    }
+
+    if ($Text -match '\\"appId\\":\s*\\"([^\\"]+)\\"') { $conflict.appId = $Matches[1] }
+    if ($Text -match '\\"objectId\\":\s*\\"([^\\"]+)\\"') { $conflict.objectId = $Matches[1] }
+    if ($Text -match '\\"appName\\":\s*\\"([^\\"]+)\\"') { $conflict.appName = $Matches[1] }
+
+    if ($conflict.objectId -or $conflict.appId) {
+        return $conflict
+    }
+    return $null
+}
+
+function Format-GSASegmentDuplicateConflictMessage {
+    param(
+        [Parameter(Mandatory)][hashtable]$Destination,
+        [Parameter(Mandatory)]$Conflict,
+        [string]$CurrentApplicationId
+    )
+
+    $hostValue = [string]$Destination.host
+    $ports = (Get-GSAGraphPortListFromSpec -Ports $Destination.ports) -join ','
+    $lines = @(
+        'Segment-Konflikt im Mandanten (Graph: Invalid_AppSegments_NonwebApp_Duplicate):',
+        "Die Kombination aus Ziel ($hostValue) und Port(s) ($ports) / Protokoll ($($Destination.protocol)) ist bereits von einer anderen Private-Access-App belegt.",
+        'Pro Mandant darf dieselbe IP+Port-Kombination nur einmal vorkommen – auch über verschiedene Anwendungsnamen hinweg.',
+        '',
+        'Konflikt-App (im Entra-Portal unter Unternehmensanwendungen suchen/löschen):',
+        "  objectId (Enterprise Application): $($Conflict.objectId)",
+        "  appId: $($Conflict.appId)",
+        "  appName (Anzeige): $($Conflict.appName)"
+    )
+    if ($CurrentApplicationId) {
+        $lines += ''
+        $lines += "Die in diesem Lauf neu angelegte Ziel-App (objectId/ApplicationId $CurrentApplicationId) sollten Sie ebenfalls löschen, bevor Sie erneut deployen."
+    }
+    $lines += ''
+    $lines += 'Alternativ: in der YAML eine andere IP oder andere Ports verwenden.'
+    return ($lines -join "`n")
+}
+
 function ConvertTo-GSAGraphJsonPrepare {
     param($Value)
 
@@ -467,10 +539,6 @@ function Get-GSAGraphSegmentDestinationCandidates {
         & $addCandidate "$hostValue/32" 'ipRangeCidr'
     }
 
-    if ($typeValue -eq 'ipRangeCidr' -and $hostValue -match '^(.+)/32$') {
-        & $addCandidate $Matches[1] 'ipAddress'
-    }
-
     return @($candidates)
 }
 
@@ -592,12 +660,27 @@ function Add-GSAApplicationSegment {
         return $late
     }
 
+    $allErrorsText = $errors -join "`n"
+    $duplicate = Get-GSASegmentDuplicateConflictFromText -Text $allErrorsText
+    if ($duplicate) {
+        Write-GSAStructuredLog -Level 'Error' -CorrelationId $CorrelationId -Message 'Application Segment: Mandantenweiter IP/Port-Konflikt.' -Data $duplicate
+        $conflictMsg = Format-GSASegmentDuplicateConflictMessage -Destination $Destination -Conflict $duplicate -CurrentApplicationId $ApplicationId
+        throw @"
+Application Segment konnte nicht erstellt werden (ApplicationId: $ApplicationId).
+
+$conflictMsg
+
+Technische Details (Graph):
+$allErrorsText
+"@
+    }
+
     throw @"
 Application Segment konnte nicht erstellt werden (ApplicationId: $ApplicationId).
 Ziel aus YAML: host=$($Destination.host) type=$($Destination.type) ports=$($Destination.ports -join ',') protocol=$protocol
 
 Versuche und Graph-Antworten:
-$($errors -join "`n")
+$allErrorsText
 
 Hinweise:
 - Für RDP auf eine einzelne IP empfiehlt sich in YAML: type ipRangeCidr, host 10.0.1.1/32

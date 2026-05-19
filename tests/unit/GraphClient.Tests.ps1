@@ -32,13 +32,16 @@ Describe 'Get-GSAGraphSegmentDestinationCandidates' {
         @($c | ForEach-Object { $_.destinationType }) | Should -Contain 'ipRangeCidr'
     }
 
-    It 'bietet ipAddress als Fallback für ipRangeCidr/32' {
-        $c = Get-GSAGraphSegmentDestinationCandidates -Destination @{
-            host = '10.0.1.1/32'
-            type = 'ipRangeCidr'
-        }
-        @($c | ForEach-Object { $_.destinationType }) | Should -Contain 'ipRangeCidr'
-        @($c | ForEach-Object { $_.destinationHost }) | Should -Contain '10.0.1.1'
+}
+
+Describe 'Get-GSASegmentDuplicateConflictFromText' {
+    It 'parst conflictingApplication aus Graph-Fehlertext' {
+        $sample = @'
+code=Invalid_AppSegments_NonwebApp_Duplicate msg=overlap conflictingApplication={ \"appId\": \"333fe82c-8594-4267-b39b-9efcc12524cf\", \"objectId\": \"e6a1cc59-6ecb-4eef-a275-cbb38c93315b\", \"appName\": \"333fe82c-8594-4267-b39b-9efcc12524cf\" }
+'@
+        $c = Get-GSASegmentDuplicateConflictFromText -Text $sample
+        $c.objectId | Should -Be 'e6a1cc59-6ecb-4eef-a275-cbb38c93315b'
+        $c.appId | Should -Be '333fe82c-8594-4267-b39b-9efcc12524cf'
     }
 }
 
