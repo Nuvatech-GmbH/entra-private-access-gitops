@@ -1,0 +1,7 @@
+{
+  "NSI": "Office-Gersthofen",
+  "SW": "Office-Gersthofen",
+  "HR": "Office-Gersthofen",
+  "Nord": "Office-Gersthofen",
+  "_comment": "Einheit (Excel-Spalte F) → Connector-Group-Name im Mandanten. Datei nach connector-groups.json kopieren und anpassen."
+}

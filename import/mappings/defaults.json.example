@@ -1,0 +1,9 @@
+{
+  "owners": ["platform@nuvatech.com"],
+  "changeReferencePrefix": "EXCEL-IMPORT-FW",
+  "defaultConnectorGroup": "Office-Gersthofen",
+  "applicationType": "enterprise",
+  "isAccessibleViaZTNAClient": true,
+  "principalType": "Group",
+  "sourceSheet": "Firewall"
+}

@@ -1,0 +1,6 @@
+{
+  "Datenbank-Administratoren": "SEC-GSA-DB-ADMINISTRATOREN",
+  "Druckermanagement-Admin": "SEC-GSA-PRINT-ADMINS",
+  "SCM-Admin": "SEC-GSA-SCM-ADMINS",
+  "_comment": "Admin Rolle (Excel-Spalte B) → Entra-Gruppe (principalName). Datei nach entra-groups.json kopieren und anpassen."
+}
