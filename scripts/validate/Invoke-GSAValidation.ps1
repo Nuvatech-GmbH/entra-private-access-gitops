@@ -57,8 +57,8 @@ foreach ($f in $yamlFiles) {
         $warnings.Add("[$($f.Name)] Dateiname weicht von metadata.name ab: '$($f.BaseName)' vs '$name'") | Out-Null
     }
 
-    if ($name -notmatch '^PA-[A-Z0-9][A-Z0-9._-]{2,}$') {
-        $issues.Add("[$($f.Name)] Naming: metadata.name entspricht nicht dem Standard PA-<TEAM>-<SYSTEM> (nur Großbuchstaben empfohlen).") | Out-Null
+    if ($name -notmatch '^(PA-[A-Z0-9][A-Z0-9._-]{2,}|EIT_PrivateAccess_[A-Za-z0-9_]+)$') {
+        $issues.Add("[$($f.Name)] Naming: metadata.name entspricht nicht dem Standard PA-<TEAM>-<SYSTEM> oder EIT_PrivateAccess_<Name>.") | Out-Null
     }
 
     foreach ($d in @($doc.spec.destinations)) {

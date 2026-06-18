@@ -1,0 +1,28 @@
+apiVersion: gsa.gitops/v1
+kind: PrivateAccessApplication
+metadata:
+  name: EIT_PrivateAccess_RR_JumpHosts
+  description: Private Access Jumphosts – EIT_PrivateAccess_RR_JumpHosts (Rhein Ruhr - Frontend).
+  owners:
+    - florian.ried@extern.edeka.de
+    - ertan.simsek@extern.edeka.de
+  changeReference: PILOT-JUMPHOSTS-001
+  tags:
+    workload: jumphosts
+    pilot: "true"
+spec:
+  applicationType: enterprise
+  isAccessibleViaZTNAClient: true
+  connectorGroup: Rhein Ruhr - Frontend
+  destinations:
+    - host: RRSGHEITSP01-MO.gh.rr.edekanet.de
+      type: fqdn
+      ports: ["3389"]
+      protocol: tcp,udp
+    - host: rrsgheitjh.gh.rr.edekanet.de
+      type: fqdn
+      ports: ["3389"]
+      protocol: tcp,udp
+  assignments:
+    - principalType: Group
+      principalName: EIT_Intune_EIT_cfg Private Access PILOT

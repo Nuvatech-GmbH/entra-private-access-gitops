@@ -2,9 +2,9 @@ apiVersion: gsa.gitops/v1
 kind: PrivateAccessApplication
 metadata:
   name: PA-DEMO-SEGMENT-IPADDRESS
-  description: "Demo IP-Adresse – Connector-Win-Server 192.168.178.42, RDP 3389 (Graph speichert oft als ipRangeCidr/32)."
+  description: "Demo IP-Adresse – RDP 3389 auf 192.168.10.42."
   owners:
-    - platform@nuvatech.com
+    - platform@contoso.com
   changeReference: DEMO-SEGMENT-IPADDRESS-001
   tags:
     purpose: demo
@@ -12,12 +12,11 @@ metadata:
 spec:
   applicationType: enterprise
   isAccessibleViaZTNAClient: true
-  connectorGroup: Office-Gersthofen
+  connectorGroup: CG-EU-CENTRAL-PA-PROD-01
   destinations:
-    # IP des Connector-Win-Servers – vom Connector-Netz aus erreichbar (inkl. Loopback zum eigenen Host)
-    - host: "192.168.178.42"
+    - host: "192.168.10.42"
       type: ipAddress
-      ports: ["3389-3389"]
+      ports: ["3389"]
       protocol: tcp
   assignments:
     - principalType: Group

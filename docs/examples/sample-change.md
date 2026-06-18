@@ -7,7 +7,7 @@ Die Anwendung `PA-CONTOSO-HR-PORTAL` soll zusätzlich `TCP/8443` erlauben (Stagi
 ## Schritte
 
 1. Branch `feature/CHG-204512-hr-port-8443` von `main`.
-2. YAML `config/applications/contoso-hr-portal.yaml` anpassen:
+2. YAML `config/applications/pa-contoso-hr-portal.yaml` anpassen:
 
 ```yaml
 spec:

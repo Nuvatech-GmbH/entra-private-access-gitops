@@ -2,9 +2,9 @@ apiVersion: gsa.gitops/v1
 kind: PrivateAccessApplication
 metadata:
   name: PA-DEMO-SEGMENT-IPRANGE-CIDR
-  description: "Demo CIDR – kleines Subnetz, LDAP 389 (typisch DC-/Infra-Segment)."
+  description: "Demo CIDR – LDAP 389 auf 10.0.2.0/28."
   owners:
-    - platform@nuvatech.com
+    - platform@contoso.com
   changeReference: DEMO-SEGMENT-IPRANGE-CIDR-001
   tags:
     purpose: demo
@@ -12,11 +12,11 @@ metadata:
 spec:
   applicationType: enterprise
   isAccessibleViaZTNAClient: true
-  connectorGroup: Office-Gersthofen
+  connectorGroup: CG-EU-CENTRAL-PA-PROD-01
   destinations:
     - host: "10.0.2.0/28"
       type: ipRangeCidr
-      ports: ["389-389"]
+      ports: ["389"]
       protocol: tcp
   assignments:
     - principalType: Group

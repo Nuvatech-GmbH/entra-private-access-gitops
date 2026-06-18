@@ -2,9 +2,9 @@ apiVersion: gsa.gitops/v1
 kind: PrivateAccessApplication
 metadata:
   name: PA-DEMO-SEGMENT-FQDN
-  description: "Demo FQDN – RDP zu nuvadc01.nuvatech.de (vom Connector erreichbar)."
+  description: "Demo FQDN – RDP zu dc01.contoso.corp."
   owners:
-    - platform@nuvatech.com
+    - platform@contoso.com
   changeReference: DEMO-SEGMENT-FQDN-001
   tags:
     purpose: demo
@@ -12,11 +12,11 @@ metadata:
 spec:
   applicationType: enterprise
   isAccessibleViaZTNAClient: true
-  connectorGroup: Office-Gersthofen
+  connectorGroup: CG-EU-CENTRAL-PA-PROD-01
   destinations:
-    - host: nuvadc01.nuvatech.de
+    - host: dc01.contoso.corp
       type: fqdn
-      ports: ["3389-3389"]
+      ports: ["3389"]
       protocol: tcp
   assignments:
     - principalType: Group

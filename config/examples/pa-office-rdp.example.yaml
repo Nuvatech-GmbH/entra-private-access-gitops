@@ -1,0 +1,23 @@
+apiVersion: gsa.gitops/v1
+kind: PrivateAccessApplication
+metadata:
+  name: PA-CONTOSO-OFFICE-RDP
+  description: RDP-Zugriff auf Office-Server (TCP/3389) über die Connector Group.
+  owners:
+    - platform@contoso.com
+  changeReference: CHG-00001
+  tags:
+    site: office
+    protocol: rdp
+spec:
+  applicationType: enterprise
+  isAccessibleViaZTNAClient: true
+  connectorGroup: CG-EU-CENTRAL-PA-PROD-01
+  destinations:
+    - host: "10.0.1.1/32"
+      type: ipRangeCidr
+      ports: ["3389"]
+      protocol: tcp
+  assignments:
+    - principalType: Group
+      principalName: SEC-GSA-PA-OFFICE-RDP

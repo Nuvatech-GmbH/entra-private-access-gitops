@@ -117,10 +117,10 @@ Referenz: [Microsoft Q&A – Can't add application segment (orphaned segment)](h
 
 | App | Löschen vor Re-Deploy? |
 | --- | --- |
-| `PA-NUVATECH-OFFICE-RDP-GERSTHOFEN` (Ziel-App) | **Ja** – halbfertige Private-Access-App |
+| `PA-…` (Ziel-App) | **Ja** – halbfertige Private-Access-App |
 | `sp-gsa-gitops-prod` (Pipeline) | **Nein** – bricht OIDC und Rollenzuweisung |
 
-Das erneute Anlegen von `PA-NUVATECH-…` durch die Pipeline ist **normal** und bedeutet nicht, dass die Pipeline-App fehlt.
+Das erneute Anlegen einer Ziel-App durch die Pipeline ist **normal** und bedeutet nicht, dass die Pipeline-App fehlt.
 
 
 **Symptom:** `Microsoft Graph verweigerte die Operation (PATCH https://graph.microsoft.com/beta/applications/...)`
@@ -129,9 +129,9 @@ Das erneute Anlegen von `PA-NUVATECH-…` durch die Pipeline ist **normal** und 
 
 1. **Admin consent** für `Application.ReadWrite.All` und `AppRoleAssignment.ReadWrite.All` auf `sp-gsa-gitops-prod`
 2. **Directory-Rolle** dem Service Principal der Pipeline zuweisen: **Application Administrator** (siehe `docs/security/authentication-and-permissions.md`)
-3. **Teilweise angelegte App löschen:** Entra → Enterprise applications → `PA-NUVATECH-OFFICE-RDP-GERSTHOFEN` → löschen → Deploy erneut (legt App neu an)
-4. **Connector Group** `Office-Gersthofen` muss existieren
-5. **Gruppe** aus YAML (`SEC-GSA-PA-OFFICE-RDP-GERSTHOFEN`) muss existieren oder `principalId` setzen
+3. **Teilweise angelegte App löschen:** Entra → Enterprise applications → betroffene `PA-…`-App → löschen → Deploy erneut
+4. **Connector Group** aus YAML muss im Mandanten existieren
+5. **Gruppe** aus YAML muss existieren oder `principalId` setzen
 
 ## OIDC Login in GitHub schlägt fehl
 

@@ -1,0 +1,80 @@
+apiVersion: gsa.gitops/v1
+kind: PrivateAccessApplication
+metadata:
+  name: EIT_PrivateAccess_SB_JumpHosts
+  description: Private Access Jumphosts – EIT_PrivateAccess_SB_JumpHosts (Suedbayern Frontend).
+  owners:
+    - florian.ried@extern.edeka.de
+    - ertan.simsek@extern.edeka.de
+  changeReference: PILOT-JUMPHOSTS-001
+  tags:
+    workload: jumphosts
+    pilot: "true"
+spec:
+  applicationType: enterprise
+  isAccessibleViaZTNAClient: true
+  connectorGroup: Suedbayern Frontend
+  destinations:
+    - host: sbs01jmp0101.sb.edeka.net
+      type: fqdn
+      ports: ["3389"]
+      protocol: tcp,udp
+    - host: sbs01jmp0201.sb.edeka.net
+      type: fqdn
+      ports: ["3389"]
+      protocol: tcp,udp
+    - host: sbs01jmp0202.sb.edeka.net
+      type: fqdn
+      ports: ["3389"]
+      protocol: tcp,udp
+    - host: sbs01jmp0301.sb.edeka.net
+      type: fqdn
+      ports: ["3389"]
+      protocol: tcp,udp
+    - host: sbs01jmp0302.sb.edeka.net
+      type: fqdn
+      ports: ["3389"]
+      protocol: tcp,udp
+    - host: sbs01jmp0401.sb.edeka.net
+      type: fqdn
+      ports: ["3389"]
+      protocol: tcp,udp
+    - host: sbs01jmp0501.sb.edeka.net
+      type: fqdn
+      ports: ["3389"]
+      protocol: tcp,udp
+    - host: sbs01jmp0601.sb.edeka.net
+      type: fqdn
+      ports: ["3389"]
+      protocol: tcp,udp
+    - host: sbs01jmp0602.sb.edeka.net
+      type: fqdn
+      ports: ["3389"]
+      protocol: tcp,udp
+    - host: sbs01jmp0701.sb.edeka.net
+      type: fqdn
+      ports: ["3389"]
+      protocol: tcp,udp
+    - host: sbs01jmp0801.sb.edeka.net
+      type: fqdn
+      ports: ["3389"]
+      protocol: tcp,udp
+    - host: sbs01jmp0901.sb.edeka.net
+      type: fqdn
+      ports: ["3389"]
+      protocol: tcp,udp
+    - host: sbs01jmp1001.sb.edeka.net
+      type: fqdn
+      ports: ["3389"]
+      protocol: tcp,udp
+    - host: sbs01jmp1101.sb.edeka.net
+      type: fqdn
+      ports: ["3389"]
+      protocol: tcp,udp
+    - host: sbs75jmp0101.sb.edeka.net
+      type: fqdn
+      ports: ["3389"]
+      protocol: tcp,udp
+  assignments:
+    - principalType: Group
+      principalName: EIT_Intune_EIT_cfg Private Access PILOT

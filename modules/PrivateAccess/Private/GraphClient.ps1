@@ -280,7 +280,7 @@ Typische Ursachen für Private Access (onPremisesPublishing):
 1) Fehlende Graph Application permission 'OnPremisesPublishingProfiles.ReadWrite.All' (Admin Consent) – häufigste Ursache bei App-only/OIDC.
 2) Application permissions ohne Admin Consent: Application.ReadWrite.All, AppRoleAssignment.ReadWrite.All.
 3) Zusätzlich Directory-Rolle 'Application Administrator' am Enterprise Application sp-gsa-gitops-prod empfohlen.
-4) Halbfertige Ziel-App löschen (PA-NUVATECH-OFFICE-RDP-GERSTHOFEN). Pipeline-App sp-gsa-gitops-prod nicht löschen.
+4) Halbfertige Ziel-App unter Enterprise applications löschen. Pipeline-App sp-gsa-gitops-prod nicht löschen.
 "@
         }
 
@@ -292,7 +292,7 @@ Typische Ursachen für Private Access (onPremisesPublishing):
 Typische Ursachen für Application Segments:
 1) Fehlende Graph Application permission 'Application.ReadWrite.All' (Admin Consent) – für Segmente laut Microsoft Learn erforderlich.
 2) Ports als Bereich '3389-3389'; JSON-Feld 'ports' muss ein Array sein.
-3) protocol nur 'tcp' oder 'udp' (nicht 'tcp,udp' für ipApplicationSegment).
+3) protocol 'tcp', 'udp' oder 'tcp,udp' (RDP: tcp,udp empfohlen).
 4) destinationType passt nicht zum host (ipAddress vs. fqdn).
 "@
             }
@@ -527,6 +527,15 @@ function Get-GSAGraphPortListFromSpec {
     return @($Ports)
 }
 
+function ConvertTo-GSAGraphSegmentProtocol {
+    param([AllowEmptyString()][string]$Protocol)
+
+    $p = ([string]$Protocol).Trim().ToLowerInvariant() -replace '\s+', ''
+    if ($p -in @('both', 'tcp,udp', 'tcp+udp', 'tcp&udp', 'tcpudp')) { return 'tcp,udp' }
+    if ($p -eq 'udp') { return 'udp' }
+    return 'tcp'
+}
+
 function Get-GSASegmentSignature {
     param(
         [string]$DestinationHost,
@@ -541,7 +550,8 @@ function Get-GSASegmentSignature {
     }
     $portsNorm = ($portRanges | Sort-Object) -join ','
     $hostNorm = ([string]$DestinationHost).Trim().ToLowerInvariant()
-    return ("$hostNorm|$DestinationType|$Protocol|$portsNorm").ToLowerInvariant()
+    $protoNorm = ConvertTo-GSAGraphSegmentProtocol -Protocol $Protocol
+    return ("$hostNorm|$DestinationType|$protoNorm|$portsNorm").ToLowerInvariant()
 }
 
 function Get-GSADestinationSignatureFromSpec {
@@ -703,7 +713,8 @@ function Test-GSASegmentMatchesDestinationSpec {
         [Parameter(Mandatory)][hashtable]$Destination
     )
 
-    if (([string]$Segment.protocol).ToLowerInvariant() -ne ([string]$Destination.protocol).ToLowerInvariant()) {
+    if ((ConvertTo-GSAGraphSegmentProtocol -Protocol ([string]$Segment.protocol)) -ne
+        (ConvertTo-GSAGraphSegmentProtocol -Protocol ([string]$Destination.protocol))) {
         return $false
     }
 
@@ -843,9 +854,7 @@ function New-GSASegmentPayload {
         $portList.Add((ConvertTo-GSAGraphPortRange -Port ([string]$p))) | Out-Null
     }
 
-    if ($Protocol -eq 'tcp,udp') {
-        throw "protocol 'tcp,udp' wird von ipApplicationSegment nicht unterstützt. Legen Sie zwei destinations an (tcp und udp) oder nutzen Sie nur tcp/udp."
-    }
+    $graphProtocol = ConvertTo-GSAGraphSegmentProtocol -Protocol $Protocol
 
     # Microsoft Learn: POST enthält port:0 zusätzlich zu ports[]
     $body = @{
@@ -853,7 +862,7 @@ function New-GSASegmentPayload {
         destinationType = $DestinationType
         port            = 0
         ports           = $portList
-        protocol        = $Protocol
+        protocol        = $graphProtocol
     }
     if (-not $IncludeDeprecatedPort) {
         $body.Remove('port')

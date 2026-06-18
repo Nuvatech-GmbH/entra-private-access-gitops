@@ -1,9 +1,6 @@
 {
-  "owners": ["platform@nuvatech.com"],
-  "changeReferencePrefix": "EXCEL-IMPORT-FW",
-  "defaultConnectorGroup": "Office-Gersthofen",
-  "applicationType": "enterprise",
-  "isAccessibleViaZTNAClient": true,
-  "principalType": "Group",
-  "sourceSheet": "Firewall"
+  "owners": ["platform@contoso.com"],
+  "defaultConnectorGroup": "CG-EU-CENTRAL-PA-PROD-01",
+  "defaultApplicationType": "enterprise",
+  "defaultIsAccessibleViaZTNAClient": true
 }

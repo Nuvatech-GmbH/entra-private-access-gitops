@@ -1,0 +1,92 @@
+apiVersion: gsa.gitops/v1
+kind: PrivateAccessApplication
+metadata:
+  name: EIT_PrivateAccess_RZS_JumpHosts
+  description: Private Access Jumphosts – EIT_PrivateAccess_RZS_JumpHosts (RZ Sued Frontend).
+  owners:
+    - florian.ried@extern.edeka.de
+    - ertan.simsek@extern.edeka.de
+  changeReference: PILOT-JUMPHOSTS-001
+  tags:
+    workload: jumphosts
+    pilot: "true"
+spec:
+  applicationType: enterprise
+  isAccessibleViaZTNAClient: true
+  connectorGroup: RZ Sued Frontend
+  destinations:
+    - host: visrzsjuptsp01.rs.edeka.net
+      type: fqdn
+      ports: ["3389"]
+      protocol: tcp,udp
+    - host: visrzsjuptsp02.rs.edeka.net
+      type: fqdn
+      ports: ["3389"]
+      protocol: tcp,udp
+    - host: visrzsjuptsp03.rs.edeka.net
+      type: fqdn
+      ports: ["3389"]
+      protocol: tcp,udp
+    - host: visrzsjuptsp04.rs.edeka.net
+      type: fqdn
+      ports: ["3389"]
+      protocol: tcp,udp
+    - host: visrzsjuptsp05.rs.edeka.net
+      type: fqdn
+      ports: ["3389"]
+      protocol: tcp,udp
+    - host: visrzsjuptsp06.rs.edeka.net
+      type: fqdn
+      ports: ["3389"]
+      protocol: tcp,udp
+    - host: visrzsjuptsp07.rs.edeka.net
+      type: fqdn
+      ports: ["3389"]
+      protocol: tcp,udp
+    - host: visrzsjuptsp08.rs.edeka.net
+      type: fqdn
+      ports: ["3389"]
+      protocol: tcp,udp
+    - host: visrzsjuptsp09.rs.edeka.net
+      type: fqdn
+      ports: ["3389"]
+      protocol: tcp,udp
+    - host: visrzsjuptsp10.rs.edeka.net
+      type: fqdn
+      ports: ["3389"]
+      protocol: tcp,udp
+    - host: visrzsjuptsp11.rs.edeka.net
+      type: fqdn
+      ports: ["3389"]
+      protocol: tcp,udp
+    - host: visrzsjuptsp12.rs.edeka.net
+      type: fqdn
+      ports: ["3389"]
+      protocol: tcp,udp
+    - host: visrzsjuptsp13.rs.edeka.net
+      type: fqdn
+      ports: ["3389"]
+      protocol: tcp,udp
+    - host: visrzsjuptsp14.rs.edeka.net
+      type: fqdn
+      ports: ["3389"]
+      protocol: tcp,udp
+    - host: visrzsjuptsp15.rs.edeka.net
+      type: fqdn
+      ports: ["3389"]
+      protocol: tcp,udp
+    - host: visrzsjuptsp16.rs.edeka.net
+      type: fqdn
+      ports: ["3389"]
+      protocol: tcp,udp
+    - host: visrzsjuptsp17.rs.edeka.net
+      type: fqdn
+      ports: ["3389"]
+      protocol: tcp,udp
+    - host: visrzsjuptsp18.rs.edeka.net
+      type: fqdn
+      ports: ["3389"]
+      protocol: tcp,udp
+  assignments:
+    - principalType: Group
+      principalName: EIT_Intune_EIT_cfg Private Access PILOT

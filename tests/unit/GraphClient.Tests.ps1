@@ -20,6 +20,12 @@ Describe 'New-GSASegmentPayload' {
         $payload.ContainsKey('@odata.type') | Should -BeFalse
         $payload.destinationHost | Should -Be '10.0.1.1/32'
     }
+
+    It 'sendet tcp,udp als ein Graph-Protokoll (RDP)' {
+        $payload = New-GSASegmentPayload -DestinationHost 'jumphost.contoso.corp' -DestinationType 'fqdn' -Ports @('3389') -Protocol 'tcp,udp'
+        $payload.protocol | Should -Be 'tcp,udp'
+        @($payload.ports) | Should -Be @('3389-3389')
+    }
 }
 
 Describe 'Get-GSAGraphSegmentDestinationCandidates' {
@@ -51,8 +57,8 @@ Describe 'Get-GSAGraphMinimalIpv4CidrForRange' {
 
 Describe 'Get-GSASegmentSignature' {
     It 'behandelt Einzelport und Graph-Bereich als gleiche Signatur' {
-        $fromYaml = Get-GSASegmentSignature -DestinationHost 'nuvadc01.nuvatech.de' -DestinationType 'fqdn' -Protocol 'tcp' -Ports @('3389')
-        $fromGraph = Get-GSASegmentSignature -DestinationHost 'nuvadc01.nuvatech.de' -DestinationType 'fqdn' -Protocol 'tcp' -Ports @('3389-3389')
+        $fromYaml = Get-GSASegmentSignature -DestinationHost 'dc01.contoso.corp' -DestinationType 'fqdn' -Protocol 'tcp' -Ports @('3389')
+        $fromGraph = Get-GSASegmentSignature -DestinationHost 'dc01.contoso.corp' -DestinationType 'fqdn' -Protocol 'tcp' -Ports @('3389-3389')
         $fromYaml | Should -Be $fromGraph
     }
 }

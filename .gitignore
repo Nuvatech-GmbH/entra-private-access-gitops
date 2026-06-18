@@ -37,18 +37,16 @@ Thumbs.db
 # Pester / coverage
 /coverage/
 TestResults/
+testResults.xml
 
 # Graph / deployment scratch
 *.graph.cache.json
 
-# Excel-Import (Quelldaten + generierte Artefakte lokal)
-import/excel/*.xlsx
-import/excel/*.xlsm
-import/excel/*.csv
-import/excel/_analysis.json
-import/excel/_all_rows.json
-import/excel/_analyze_freischaltungen.py
+# Excel-Import (Quelldaten lokal, nicht im Repository)
+import/excel/*
+!import/excel/.gitkeep
 import/output/
 import/logs/
 !import/mappings/*.example
 !import/mappings/*.json.example
+!import/templates/

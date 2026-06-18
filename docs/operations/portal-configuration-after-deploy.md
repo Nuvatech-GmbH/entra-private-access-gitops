@@ -73,7 +73,7 @@ Navigation (deutsche UI, kann leicht abweichen):
 
 | Prüfpunkt | Erwartung |
 | --- | --- |
-| Connector Group Name | Exakt wie in YAML, z. B. `Office-Gersthofen` |
+| Connector Group Name | Exakt wie in YAML, z. B. `CG-EU-CENTRAL-PA-PROD-01` |
 | Connector installiert | Auf einem Server/VM im Office-Netz (nah am Zielnetz) |
 | Status | **Aktiv** (nicht nur installiert, sondern verbunden) |
 | Netzwerk | Ausgehend HTTPS zu Microsoft; keine Blockade der GSA-Connector-Endpunkte |
@@ -125,14 +125,14 @@ Für einen RDP-Test müssen Testuser **Mitglied der Gruppe** sein **und** die Gr
 
 ### 4. Enterprise Application prüfen (nach grünem Deploy)
 
-**Pfad:** Entra → **Unternehmensanwendungen** → App z. B. `PA-NUVATECH-OFFICE-RDP-GERSTHOFEN`
+**Pfad:** Entra → **Unternehmensanwendungen** → App z. B. `PA-CONTOSO-OFFICE-RDP`
 
 | Prüfpunkt | Erwartung |
 | --- | --- |
 | App existiert | Angelegt durch Pipeline (`applicationTemplates/…/instantiate`) |
 | **Benutzer und Gruppen** | Gruppe aus YAML zugewiesen (Rolle **User**) |
 | Private Access / Segmente | Ziel `10.0.1.1/32`, Port `3389`, Protokoll TCP (je nach Konfiguration) |
-| Connector Group | `Office-Gersthofen` (oder Ihr Name) |
+| Connector Group | `CG-EU-CENTRAL-PA-PROD-01` (oder Ihr Name) |
 
 Optional: `metadata.graphApplicationId` in der YAML setzen, damit Re-Deploys die App stabil wiederfinden (siehe README).
 

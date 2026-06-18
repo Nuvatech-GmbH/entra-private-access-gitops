@@ -1,10 +1,10 @@
 #Requires -Version 7.0
 <#
 .SYNOPSIS
-Validiert die bereinigte Freischaltungen-Zielvorlage (CSV) vor YAML-Export.
+Validiert ein Import-Arbeitsbuch (CSV) vor YAML-Export.
 
 .EXAMPLE
-./scripts/import/Validate-GSAImportWorkbook.ps1 -InputPath ./import/templates/Freischaltungen-Zielvorlage.csv
+./scripts/import/Validate-GSAImportWorkbook.ps1 -InputPath ./import/templates/import-workbook-template.csv
 #>
 [CmdletBinding()]
 param(
@@ -81,10 +81,6 @@ foreach ($row in $rows) {
         if ([string]::IsNullOrWhiteSpace([string]$row.$field)) {
             $issues.Add("$prefix : Pflichtfeld '$field' ist leer.") | Out-Null
         }
-    }
-
-    if (-not [string]::IsNullOrWhiteSpace([string]$row.entra_group_name) -and [string]$row.entra_group_name -notmatch '^EIT_PA_Admin_') {
-        $warnings.Add("$prefix : entra_group_name beginnt nicht mit EIT_PA_Admin_ – aus Blatt 'Rollen und Berechtigung' prüfen.") | Out-Null
     }
 
     $tt = ([string]$row.target_type).Trim()

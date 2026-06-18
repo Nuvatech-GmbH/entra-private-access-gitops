@@ -24,14 +24,14 @@ Notieren Sie:
 Unter **Certificates & secrets** → **Federated credentials** → Szenario **GitHub Actions deploying Azure resources**.
 
 **Issuer:** `https://token.actions.githubusercontent.com`  
-**Organization / Repository:** Ihre GitHub-Org und dieses Repo (z. B. `Nuvatech-GmbH` / `entra-private-access-gitops`).
+**Organization / Repository:** Ihre GitHub-Org und dieses Repo (z. B. `MyOrg` / `entra-private-access-gitops`).
 
 Empfohlen: **zwei** Credentials (eng begrenzt):
 
 | Zweck | Entity type | Name / Wert | Subject (Beispiel) |
 | --- | --- | --- | --- |
-| Produktions-Deploy | **Environment** | `production` | `repo:Nuvatech-GmbH/entra-private-access-gitops:environment:production` |
-| PR WhatIf / Drift | **Pull request** | (automatisch) | `repo:Nuvatech-GmbH/entra-private-access-gitops:pull_request` |
+| Produktions-Deploy | **Environment** | `production` | `repo:MyOrg/entra-private-access-gitops:environment:production` |
+| PR WhatIf / Drift | **Pull request** | (automatisch) | `repo:MyOrg/entra-private-access-gitops:pull_request` |
 
 Alternativ nur zum schnellen Test: **Branch** `main` – dann funktionieren PR-Workflows mit Graph auf Feature-Branches **nicht**.
 

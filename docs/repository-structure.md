@@ -7,7 +7,8 @@ Dieses Repository folgt einem **Platform-Engineering**-Layout: klare Trennung zw
 | `/.github` | CI/CD-Workflows, PR-Vorlagen, CODEOWNERS. Enthält die **GitOps-Gates** (Validierung, WhatIf, Produktions-Deployment). |
 | `/.github/workflows` | `validation.yml` (wiederverwendbare Basisprüfungen), `pull-request-validation.yml` (PR), `deploy-production.yml` (Merge → Produktion). |
 | `/build` | Hilfsskripte für lokale CI (`Invoke-LocalCI.ps1`) und spätere Erweiterungen (Packaging, Releases). |
-| `/config/applications` | **Single Source of Truth** für Private Access Anwendungen (eine YAML-Datei pro App). |
+| `/config/applications` | **Single Source of Truth** für produktive Private-Access-Anwendungen (eine YAML-Datei pro App). |
+| `/config/examples` | YAML-Vorlagen und Demos (`*.example.yaml`) – werden **nicht** deployed. |
 | `/docs` | Architektur, Governance, Security, Onboarding, Betrieb, FAQ, Roadmap. |
 | `/docs/architecture` | Zielbild, Komponenten, Datenflüsse, Erweiterbarkeit. |
 | `/docs/governance` | Review-Modell, Ownership, Notfallprozesse, CAB-Anbindung. |
@@ -21,7 +22,9 @@ Dieses Repository folgt einem **Platform-Engineering**-Layout: klare Trennung zw
 | `/schemas` | JSON Schema für `gsa.gitops/v1` Dokumente (CI-Validierung). |
 | `/scripts/deploy` | Entry Points für produktive Deployments (GitHub Actions & Break-Glass). |
 | `/scripts/validate` | Repository-weite Validierung (Schema, Naming, Duplikate). |
-| `/scripts/utils` | Hilfen (z. B. WhatIf-Report Export). |
+| `/import` | Massenimport: Arbeitsbuch-Vorlage, Mappings, lokale Quelldaten (`import/excel/`, nicht im Repo). |
+| `/import/templates` | CSV-Arbeitsbuch-Vorlage für Excel/CSV-Import. |
+| `/scripts/import` | Validierung und Konvertierung Import → YAML. |
 | `/tests/unit` | Pester Unit-Tests (schnell, deterministisch). |
 | `/tests/integration` | Manuelle / halbautomatische Integration gegen einen Mandanten (Struktur + Anleitung). |
 

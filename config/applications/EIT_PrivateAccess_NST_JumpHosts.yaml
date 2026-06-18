@@ -1,0 +1,124 @@
+apiVersion: gsa.gitops/v1
+kind: PrivateAccessApplication
+metadata:
+  name: EIT_PrivateAccess_NST_JumpHosts
+  description: Private Access Jumphosts – EIT_PrivateAccess_NST_JumpHosts (Nordbayern Frontend).
+  owners:
+    - florian.ried@extern.edeka.de
+    - ertan.simsek@extern.edeka.de
+  changeReference: PILOT-JUMPHOSTS-001
+  tags:
+    workload: jumphosts
+    pilot: "true"
+spec:
+  applicationType: enterprise
+  isAccessibleViaZTNAClient: true
+  connectorGroup: Nordbayern Frontend
+  destinations:
+    - host: viscmmc01.nb.edeka.net
+      type: fqdn
+      ports: ["3389"]
+      protocol: tcp,udp
+    - host: viscmmc02.nb.edeka.net
+      type: fqdn
+      ports: ["3389"]
+      protocol: tcp,udp
+    - host: viscmmc05.nb.edeka.net
+      type: fqdn
+      ports: ["3389"]
+      protocol: tcp,udp
+    - host: visdmmc01.nb.edeka.net
+      type: fqdn
+      ports: ["3389"]
+      protocol: tcp,udp
+    - host: vismmc01.nb.edeka.net
+      type: fqdn
+      ports: ["3389"]
+      protocol: tcp,udp
+    - host: vissmmc01.nb.edeka.net
+      type: fqdn
+      ports: ["3389"]
+      protocol: tcp,udp
+    - host: vissmmc02.nb.edeka.net
+      type: fqdn
+      ports: ["3389"]
+      protocol: tcp,udp
+    - host: vissmmc05.nb.edeka.net
+      type: fqdn
+      ports: ["3389"]
+      protocol: tcp,udp
+    - host: vissmmc08.nb.edeka.net
+      type: fqdn
+      ports: ["3389"]
+      protocol: tcp,udp
+    - host: vissmmc09.nb.edeka.net
+      type: fqdn
+      ports: ["3389"]
+      protocol: tcp,udp
+    - host: vissmmc10.nb.edeka.net
+      type: fqdn
+      ports: ["3389"]
+      protocol: tcp,udp
+    - host: vissmmc11.nb.edeka.net
+      type: fqdn
+      ports: ["3389"]
+      protocol: tcp,udp
+    - host: vissmmc12.nb.edeka.net
+      type: fqdn
+      ports: ["3389"]
+      protocol: tcp,udp
+    - host: vissmmc13.nb.edeka.net
+      type: fqdn
+      ports: ["3389"]
+      protocol: tcp,udp
+    - host: vissmmc14.nb.edeka.net
+      type: fqdn
+      ports: ["3389"]
+      protocol: tcp,udp
+    - host: vissmmc15.nb.edeka.net
+      type: fqdn
+      ports: ["3389"]
+      protocol: tcp,udp
+    - host: vissmmc16.nb.edeka.net
+      type: fqdn
+      ports: ["3389"]
+      protocol: tcp,udp
+    - host: vissmmc18.nb.edeka.net
+      type: fqdn
+      ports: ["3389"]
+      protocol: tcp,udp
+    - host: vissmmc19.nb.edeka.net
+      type: fqdn
+      ports: ["3389"]
+      protocol: tcp,udp
+    - host: vissmmc20.nb.edeka.net
+      type: fqdn
+      ports: ["3389"]
+      protocol: tcp,udp
+    - host: vissmmc21.nb.edeka.net
+      type: fqdn
+      ports: ["3389"]
+      protocol: tcp,udp
+    - host: vissmmc22.nb.edeka.net
+      type: fqdn
+      ports: ["3389"]
+      protocol: tcp,udp
+    - host: vissmmc23.nb.edeka.net
+      type: fqdn
+      ports: ["3389"]
+      protocol: tcp,udp
+    - host: vissmmc24.nb.edeka.net
+      type: fqdn
+      ports: ["3389"]
+      protocol: tcp,udp
+    - host: vissmmc27.nb.edeka.net
+      type: fqdn
+      ports: ["3389"]
+      protocol: tcp,udp
+    - host: vissmmc28.nb.edeka.net
+      type: fqdn
+      ports: ["3389"]
+      protocol: tcp,udp
+  assignments:
+    - principalType: Group
+      principalName: EIT_Intune_EIT_cfg Private Access PILOT

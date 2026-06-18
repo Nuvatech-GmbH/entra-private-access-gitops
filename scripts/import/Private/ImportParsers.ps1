@@ -225,7 +225,7 @@ function ConvertTo-GSAImportConnectorSlug {
 function ConvertTo-GSAApplicationNameFromImportRow {
     <#
     .SYNOPSIS
-    Erzeugt metadata.name: Entra-Gruppenname (EIT_PA_Admin_…) + Connector Group.
+    Erzeugt metadata.name aus Entra-Gruppenname und Connector Group.
     Eine App = admin_rolle + connector_group (über entra_group_name und connector_group).
     #>
     param(

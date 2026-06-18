@@ -1,0 +1,164 @@
+apiVersion: gsa.gitops/v1
+kind: PrivateAccessApplication
+metadata:
+  name: EIT_PrivateAccess_SW_JumpHosts
+  description: Private Access Jumphosts – EIT_PrivateAccess_SW_JumpHosts (Suedwest Frontend).
+  owners:
+    - florian.ried@extern.edeka.de
+    - ertan.simsek@extern.edeka.de
+  changeReference: PILOT-JUMPHOSTS-001
+  tags:
+    workload: jumphosts
+    pilot: "true"
+spec:
+  applicationType: enterprise
+  isAccessibleViaZTNAClient: true
+  connectorGroup: Suedwest Frontend
+  destinations:
+    - host: EBLVMITNW01.sw.edeka.net
+      type: fqdn
+      ports: ["3389"]
+      protocol: tcp,udp
+    - host: eblvmposts01.sw.edeka.net
+      type: fqdn
+      ports: ["3389"]
+      protocol: tcp,udp
+    - host: viseswurztsp02.sw.edeka.net
+      type: fqdn
+      ports: ["3389"]
+      protocol: tcp,udp
+    - host: viseswurztsp03.sw.edeka.net
+      type: fqdn
+      ports: ["3389"]
+      protocol: tcp,udp
+    - host: viseswurztsp05.sw.edeka.net
+      type: fqdn
+      ports: ["3389"]
+      protocol: tcp,udp
+    - host: viwsw-extdlts.sw.edeka.net
+      type: fqdn
+      ports: ["3389"]
+      protocol: tcp,udp
+    - host: viwsw-ghts01.sw.edeka.net
+      type: fqdn
+      ports: ["3389"]
+      protocol: tcp,udp
+    - host: viwsw-gksests01.sw.edeka.net
+      type: fqdn
+      ports: ["3389"]
+      protocol: tcp,udp
+    - host: viwsw-hofts01.sw.edeka.net
+      type: fqdn
+      ports: ["3389"]
+      protocol: tcp,udp
+    - host: viwsw-iamts01.sw.edeka.net
+      type: fqdn
+      ports: ["3389"]
+      protocol: tcp,udp
+    - host: viwsw-itlogts01.sw.edeka.net
+      type: fqdn
+      ports: ["3389"]
+      protocol: tcp,udp
+    - host: viwsw-itlogts02.sw.edeka.net
+      type: fqdn
+      ports: ["3389"]
+      protocol: tcp,udp
+    - host: viwsw-mcts01.sw.edeka.net
+      type: fqdn
+      ports: ["3389"]
+      protocol: tcp,udp
+    - host: viwsw-nwts02.sw.edeka.net
+      type: fqdn
+      ports: ["3389"]
+      protocol: tcp,udp
+    - host: viwsw-portalts.sw.edeka.net
+      type: fqdn
+      ports: ["3389"]
+      protocol: tcp,udp
+    - host: viwsw-posts01.sw.edeka.net
+      type: fqdn
+      ports: ["3389"]
+      protocol: tcp,udp
+    - host: viwsw-sapbats01.sw.edeka.net
+      type: fqdn
+      ports: ["3389"]
+      protocol: tcp,udp
+    - host: viwsw-sdts01.sw.edeka.net
+      type: fqdn
+      ports: ["3389"]
+      protocol: tcp,udp
+    - host: viwsw-smmc01.sw.edeka.net
+      type: fqdn
+      ports: ["3389"]
+      protocol: tcp,udp
+    - host: viwsw-smmc02.sw.edeka.net
+      type: fqdn
+      ports: ["3389"]
+      protocol: tcp,udp
+    - host: viwsw-smmc03.sw.edeka.net
+      type: fqdn
+      ports: ["3389"]
+      protocol: tcp,udp
+    - host: viwsw-smmc04.sw.edeka.net
+      type: fqdn
+      ports: ["3389"]
+      protocol: tcp,udp
+    - host: viwsw-smmc05.sw.edeka.net
+      type: fqdn
+      ports: ["3389"]
+      protocol: tcp,udp
+    - host: viwsw-smmc06.sw.edeka.net
+      type: fqdn
+      ports: ["3389"]
+      protocol: tcp,udp
+    - host: viwsw-smmc07.sw.edeka.net
+      type: fqdn
+      ports: ["3389"]
+      protocol: tcp,udp
+    - host: viwsw-smmc08.sw.edeka.net
+      type: fqdn
+      ports: ["3389"]
+      protocol: tcp,udp
+    - host: viwsw-smmc09.sw.edeka.net
+      type: fqdn
+      ports: ["3389"]
+      protocol: tcp,udp
+    - host: viwsw-smmc10.sw.edeka.net
+      type: fqdn
+      ports: ["3389"]
+      protocol: tcp,udp
+    - host: viwsw-smmc11.sw.edeka.net
+      type: fqdn
+      ports: ["3389"]
+      protocol: tcp,udp
+    - host: viwsw-smmc12.sw.edeka.net
+      type: fqdn
+      ports: ["3389"]
+      protocol: tcp,udp
+    - host: viwsw-smmc13.sw.edeka.net
+      type: fqdn
+      ports: ["3389"]
+      protocol: tcp,udp
+    - host: viwsw-ssits01.sw.edeka.net
+      type: fqdn
+      ports: ["3389"]
+      protocol: tcp,udp
+    - host: viwsw-sysmts02.sw.edeka.net
+      type: fqdn
+      ports: ["3389"]
+      protocol: tcp,udp
+    - host: viwsw-ts02.sw.edeka.net
+      type: fqdn
+      ports: ["3389"]
+      protocol: tcp,udp
+    - host: viwsw-ts03.sw.edeka.net
+      type: fqdn
+      ports: ["3389"]
+      protocol: tcp,udp
+    - host: viwsw-usbitts.sw.edeka.net
+      type: fqdn
+      ports: ["3389"]
+      protocol: tcp,udp
+  assignments:
+    - principalType: Group
+      principalName: EIT_Intune_EIT_cfg Private Access PILOT

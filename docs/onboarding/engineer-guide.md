@@ -20,7 +20,7 @@ Das Skript installiert benötigte Module in den CurrentUser-Scope und führt Ana
 
 ## Neue Anwendung hinzufügen
 
-1. Kopieren Sie eine Beispieldatei aus `config/applications/*.example.yaml` (**`.example.yaml` wird nie deployed**).
+1. Kopieren Sie eine Beispieldatei aus `config/examples/*.example.yaml` nach `config/applications/` (**`.example.yaml` wird nie deployed**).
 2. Speichern Sie als neue Datei **ohne** `.example` (z. B. `pa-team-system.yaml`).
 3. Setzen Sie realistische Werte:
    - `metadata.name` eindeutig (`PA-<TEAM>-<SYSTEM>`)

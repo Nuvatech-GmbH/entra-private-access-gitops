@@ -34,7 +34,7 @@ Dieses Repository ist die **Single Source of Truth** für **Microsoft Entra Priv
 
 **Ablauf in einem Satz:** YAML beschreibt die gewünschte Private-Access-App → Review im PR → Merge nach `main` → Pipeline legt oder aktualisiert die App im Mandanten.
 
-**Wichtig:** Dateien mit Endung **`.example.yaml`** sind **nur Vorlagen** – sie werden **nicht** deployed. Produktive Dateien heißen z. B. `pa-mein-team-rdp-server01.yaml` (ohne `.example`).
+**Wichtig:** Unter `config/applications/` liegen nur **produktive** YAMLs. Vorlagen und Demos mit Endung **`.example.yaml`** stehen in **`config/examples/`** – sie werden **nicht** deployed.
 
 ---
 
@@ -58,11 +58,11 @@ Sie arbeiten fast immer so: **neuer Branch → Datei ändern → PR → Review �
 
 | Thema | Beispiel | Wer legt es an? |
 | --- | --- | --- |
-| **Connector Group** (Name exakt) | `Office-Gersthofen` | Meist Netzwerk/Plattform im Portal |
-| **Ziel** (IP, FQDN, Ports) | `10.0.1.1`, TCP `3389` | Sie in YAML |
-| **Berechtigte Gruppe** | `SEC-GSA-PA-OFFICE-RDP-GERSTHOFEN` | Identity-Team in Entra |
-| **Ticket / Change** | `CHG-12345` | Sie in `metadata.changeReference` |
-| **Eindeutiger App-Name** | `PA-NUVATECH-OFFICE-RDP-GERSTHOFEN` | Sie in `metadata.name` (Konvention `PA-…`) |
+| **Connector Group** (Name exakt) | `CG-EU-CENTRAL-PA-PROD-01` | Plattform-Team im Portal |
+| **Ziel** (IP, FQDN, Ports) | `10.0.1.1`, TCP `3389` | In YAML |
+| **Berechtigte Gruppe** | `SEC-GSA-PA-OFFICE-RDP` | Identity-Team in Entra |
+| **Ticket / Change** | `CHG-12345` | In `metadata.changeReference` |
+| **Eindeutiger App-Name** | `PA-CONTOSO-OFFICE-RDP` | In `metadata.name` (Konvention `PA-…`) |
 
 Ohne existierende **Connector Group** und **Sicherheitsgruppe** schlägt der Deploy später fehl (nach dem App-Anlegen).
 
@@ -71,12 +71,12 @@ Ohne existierende **Connector Group** und **Sicherheitsgruppe** schlägt der Dep
 ### Schritt 1: Vorlage kopieren (GitHub im Browser)
 
 1. Öffnen Sie das Repository auf GitHub.
-2. Gehen Sie zu **`config/applications/`**.
+2. Gehen Sie zu **`config/examples/`** (Vorlagen; produktive Apps liegen in `config/applications/`).
 3. Öffnen Sie z. B. `contoso-hr-portal.example.yaml` (oder eine andere `*.example.yaml`).
 4. Klicken Sie **⋯** → **Open file** → oben rechts **⋯** → **Copy raw file** / oder: **Add file** → **Create new file**.
 5. Dateiname (produktiv, **ohne** `.example`):
 
-   `pa-nuvatech-office-rdp-gersthofen.yaml`
+   `pa-contoso-office-rdp.yaml`
 
    (Kleinbuchstaben und Bindestriche sind üblich; der **Anzeigename** in Entra kommt aus `metadata.name`.)
 
@@ -86,18 +86,18 @@ Ohne existierende **Connector Group** und **Sicherheitsgruppe** schlägt der Dep
 apiVersion: gsa.gitops/v1
 kind: PrivateAccessApplication
 metadata:
-  name: PA-NUVATECH-OFFICE-RDP-GERSTHOFEN
-  description: RDP-Zugriff Office Gersthofen (TCP/3389) über Connector Group Office-Gersthofen.
+  name: PA-CONTOSO-OFFICE-RDP
+  description: RDP-Zugriff Office (TCP/3389) über Connector Group.
   owners:
-    - ihre.email@nuvatech.com
+    - platform@contoso.com
   changeReference: CHG-12345-001
   tags:
-    site: gersthofen
+    site: office
     protocol: rdp
 spec:
   applicationType: enterprise
   isAccessibleViaZTNAClient: true
-  connectorGroup: Office-Gersthofen
+  connectorGroup: CG-EU-CENTRAL-PA-PROD-01
   destinations:
     - host: "10.0.1.1"
       type: ipAddress
@@ -105,7 +105,7 @@ spec:
       protocol: tcp
   assignments:
     - principalType: Group
-      principalName: SEC-GSA-PA-OFFICE-RDP-GERSTHOFEN
+      principalName: SEC-GSA-PA-OFFICE-RDP
 ```
 
 **Tipps:**
@@ -150,8 +150,8 @@ Reviewer (laut `CODEOWNERS`) geben den PR frei.
 
 **Erfolg prüfen:**
 
-- Actions: Workflow **grün**, Log z. B. `Verarbeite pa-nuvatech-office-rdp-gersthofen.yaml` **ohne** `403 Forbidden`.
-- Entra → **Enterprise applications** → App `PA-NUVATECH-OFFICE-RDP-GERSTHOFEN` mit Private-Access-Segment und Zuweisung.
+- Actions: Workflow **grün**, Log z. B. `Verarbeite pa-contoso-office-rdp.yaml` **ohne** `403 Forbidden`.
+- Entra → **Enterprise applications** → App `PA-CONTOSO-OFFICE-RDP` mit Private-Access-Segment und Zuweisung.
 
 Optional danach (Plattform): `metadata.graphApplicationId` in der YAML setzen (Object-ID der App aus Entra) – stabilisiert spätere Updates. Die Pipeline funktioniert auch ohne (Lookup per `displayName`).
 
@@ -160,10 +160,10 @@ Optional danach (Plattform): `metadata.graphApplicationId` in der YAML setzen (O
 ### Alternative: Änderung mit Git auf dem Laptop
 
 ```bash
-git clone https://github.com/Nuvatech-GmbH/entra-private-access-gitops.git
+git clone https://github.com/MyOrg/entra-private-access-gitops.git
 cd entra-private-access-gitops
 git checkout -b feature/pa-meine-neue-app
-cp config/applications/contoso-hr-portal.example.yaml config/applications/pa-meine-neue-app.yaml
+cp config/examples/contoso-hr-portal.example.yaml config/applications/pa-meine-neue-app.yaml
 # Datei bearbeiten
 pwsh ./scripts/validate/Invoke-GSAValidation.ps1   # optional, lokal
 git add config/applications/pa-meine-neue-app.yaml
@@ -332,12 +332,14 @@ Jede produktive Datei: `config/applications/<name>.yaml` ( **nicht** `*.example.
 | `spec.destinations[]` | Ja | `host`, `type` (`ipAddress`, `fqdn`, …), `ports`, `protocol` |
 | `spec.assignments[]` | Ja | `principalType` + `principalId` oder `principalName` |
 
-**Beispiel-Vorlagen (werden nicht deployed):**
+**Beispiel-Vorlagen (werden nicht deployed, Ordner `config/examples/`):**
 
-- `config/applications/contoso-hr-portal.example.yaml`
-- `config/applications/contoso-fileserver.example.yaml`
+- `config/examples/contoso-hr-portal.example.yaml`
+- `config/examples/contoso-fileserver.example.yaml`
+- `config/examples/pa-office-rdp.example.yaml`
+- `config/examples/pa-demo-segment-*.example.yaml`
 
-**Produktives Beispiel im Repo:** `config/applications/pa-nuvatech-office-rdp-gersthofen.yaml`
+**Hinweis:** Nur YAMLs direkt unter `config/applications/` (ohne `.example`) werden deployed – z. B. die fünf `EIT_PrivateAccess_*_JumpHosts.yaml` oder neue `pa-<name>.yaml`.
 
 JSON Schema: `schemas/private-access-application.schema.json`
 
@@ -375,7 +377,7 @@ Ausführlich: `docs/repository-structure.md`, `docs/architecture/overview.md`
 **PowerShell (lokal testen ohne Entra-Schreiben):**
 
 ```powershell
-git clone https://github.com/Nuvatech-GmbH/entra-private-access-gitops.git
+git clone https://github.com/MyOrg/entra-private-access-gitops.git
 cd entra-private-access-gitops
 pwsh ./build/Invoke-LocalCI.ps1
 ```
@@ -411,6 +413,7 @@ Kurzcheckliste – Details in `docs/security/authentication-and-permissions.md`:
 | Runbook / Rollback | `docs/operations/runbook.md` |
 | Beispiel-Change | `docs/examples/sample-change.md` |
 | Demo: 4 Segment-Typen (IP, FQDN, CIDR, IP–IP) | `docs/examples/demo-application-segments.md` |
+| Massenimport (Excel/CSV) | `docs/import/import-workbook-guide.md` |
 | FAQ | `docs/FAQ.md` |
 
 ---

@@ -6,12 +6,12 @@ BeforeAll {
 
 Describe 'YAML Schema Validierung' {
     It 'validiert Beispiel HR Portal' {
-        $path = Join-Path $RepoRoot 'config/applications/contoso-hr-portal.example.yaml'
+        $path = Join-Path $RepoRoot 'config/examples/contoso-hr-portal.example.yaml'
         { Test-GSAConfiguration -Path $path } | Should -Not -Throw
     }
 
     It 'validiert Beispiel Fileserver' {
-        $path = Join-Path $RepoRoot 'config/applications/contoso-fileserver.example.yaml'
+        $path = Join-Path $RepoRoot 'config/examples/contoso-fileserver.example.yaml'
         { Test-GSAConfiguration -Path $path } | Should -Not -Throw
     }
 }

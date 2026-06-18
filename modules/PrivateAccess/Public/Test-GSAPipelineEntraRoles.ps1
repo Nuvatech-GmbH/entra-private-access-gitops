@@ -81,7 +81,7 @@ Hinweise:
 - Rolle dem Service Principal zuweisen (Entra → Enterprise applications → sp-gsa-gitops-prod), nicht nur der App Registration und nicht einem Benutzerkonto.
 - 'Global Secure Access Administrator' allein reicht für den PATCH onPremisesPublishing in der Regel nicht.
 - Nach Zuweisung 10–15 Min. warten.
-- Halbfertige App 'PA-NUVATECH-OFFICE-RDP-GERSTHOFEN' unter Enterprise applications löschen (nicht 'sp-gsa-gitops-prod' löschen).
+- Halbfertige Ziel-App unter Enterprise applications löschen (nicht 'sp-gsa-gitops-prod' löschen).
 "@
     }
 }

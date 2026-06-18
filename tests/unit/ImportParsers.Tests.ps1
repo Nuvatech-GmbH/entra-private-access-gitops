@@ -77,9 +77,9 @@ Describe 'Resolve-GSAImportProtocolFromLegacyText' {
 Describe 'ConvertTo-GSAApplicationNameFromImportRow' {
     It 'hängt Connector Group an Entra-Gruppennamen' {
         ConvertTo-GSAApplicationNameFromImportRow `
-            -EntraGroupName 'EIT_PA_Admin_INS_Infrastrukturdienste_Datenbanken' `
-            -ConnectorGroup 'Office-Gersthofen' |
-            Should -Be 'EIT_PA_Admin_INS_Infrastrukturdienste_Datenbanken_Office_Gersthofen'
+            -EntraGroupName 'SEC-GSA-PA-DATABASES' `
+            -ConnectorGroup 'CG-EU-CENTRAL-PA-PROD-01' |
+            Should -Be 'SEC-GSA-PA-DATABASES_CG_EU_CENTRAL_PA_PROD_01'
     }
 }
 

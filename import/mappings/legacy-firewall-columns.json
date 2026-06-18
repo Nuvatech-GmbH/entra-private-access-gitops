@@ -1,18 +1,16 @@
 {
-  "_comment": "Spalten-Mapping Freischaltungen.xlsx (Blatt Firewall) → Freischaltungen-Zielvorlage.csv",
-  "sourceSheet": "Firewall",
-  "columns": {
-    "source_nr": "Nr.",
-    "admin_rolle": "Admin Rolle",
-    "entra_group_name": "Entra ID - Rollen Name",
-    "einheit": "Einheit",
-    "ziel_raw": "Ziel\n(DNS-Name/IP/Netze)",
-    "port_raw": "Port",
-    "protocol_raw": "Protokoll",
-    "review_legacy": "Geprüft"
+  "_comment": "Spalten-Mapping Quell-Excel → import-workbook-template.csv",
+  "sourceWorkbook": {
+    "sheet": "Firewall",
+    "headerRow": 1
   },
-  "forwardFillColumns": ["Nr.", "Admin Rolle", "Einheit"],
-  "applicationGroupBy": ["entra_group_name", "connector_group"],
-  "applicationNamePattern": "{entra_group_name}_{connector_group_slug}",
-  "entraGroupNameSource": "Rollen und Berechtigung / Spalte 'Entra ID - Rollen Name' (Formel: EIT_PA_Admin_{E2}_{E3}_{E4?}_{Kurzname?})"
+  "columns": {
+    "adminRole": "Admin Rolle",
+    "entraGroupName": "Entra ID - Rollen Name",
+    "target": "Ziel\n(DNS-Name/IP/Netze)",
+    "protocol": "Protokoll",
+    "port": "Port",
+    "connectorGroup": "Connector Group"
+  },
+  "entraGroupNameSource": "Rollen- und Berechtigungsliste / Spalte mit Entra-Gruppennamen"
 }

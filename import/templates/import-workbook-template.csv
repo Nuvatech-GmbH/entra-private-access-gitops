@@ -1,0 +1,12 @@
+admin_rolle;entra_group_name;connector_group;target_type;fqdn;ip_address;cidr_range;ip_range_start;ip_range_end;protocol;ports;source_reference;review_status;needs_clarification;review_comment
+Database-Admins;SEC-GSA-PA-DATABASES;CG-EU-CENTRAL-PA-PROD-01;fqdn;sql01.contoso.corp;;;;;tcp;1433;sql01.contoso.corp;approved;no;FQDN example
+Database-Admins;SEC-GSA-PA-DATABASES;CG-EU-CENTRAL-PA-PROD-01;ipRangeCidr;;;10.61.216.0/24;;;tcp;1521;10.61.216.0/24;approved;no;CIDR example
+Database-Admins;SEC-GSA-PA-DATABASES;CG-EU-CENTRAL-PA-PROD-01;ipRange;;;;10.0.3.10;10.0.3.20;tcp;5985;10.0.3.10-10.0.3.20;approved;no;IP range example
+Remote-Desktop;SEC-GSA-PA-RDP;CG-EU-CENTRAL-PA-PROD-01;fqdn;rdp01.contoso.corp;;;;;tcp;3389;rdp01.contoso.corp;approved;no;single port
+Remote-Desktop;SEC-GSA-PA-RDP;CG-EU-CENTRAL-PA-PROD-01;ipAddress;;192.168.10.42;;;;tcp;3389;192.168.10.42;approved;no;IP only when no FQDN
+Directory-Services;SEC-GSA-PA-LDAP;CG-EU-CENTRAL-PA-PROD-01;ipRangeCidr;;;10.61.215.0/24;;;both;389;LDAP TCP/UDP;approved;no;both splits to tcp+udp
+Remote-Desktop;SEC-GSA-PA-RDP;CG-EU-CENTRAL-PA-PROD-01;fqdn;rdp01.contoso.corp;;;;;udp;5900-5905;VNC port range;approved;no;port range with hyphen
+Web-Servers;SEC-GSA-PA-WEB;CG-EU-CENTRAL-PA-PROD-01;ipAddress;;10.251.9.155;;;;both;443,4431,6443,21,22,83;multiple ports per row;approved;no;comma-separated ports
+Web-Servers;SEC-GSA-PA-WEB;CG-EU-CENTRAL-PA-PROD-01;ipAddress;;10.251.9.157;;;;both;443,4431,6443,21,22,83;second host same ports;approved;no;one row per target
+Network-Access;SEC-GSA-PA-NETWORK;CG-EU-CENTRAL-PA-PROD-01;ipRangeCidr;;;10.57.10.0/24;;;tcp;;server network;needs_clarification;yes;port missing
+IPAM;SEC-GSA-PA-IPAM;CG-EU-CENTRAL-PA-PROD-01;fqdn;ipam.contoso.corp;;;;;tcp;;https://ipam.contoso.corp/;needs_clarification;yes;port unclear

@@ -1,7 +1,7 @@
 #Requires -Version 7.0
 <#
 .SYNOPSIS
-Konvertiert Firewall-Freischaltungen aus Excel/CSV in Private-Access-YAML-Dateien.
+Konvertiert Firewall- oder Freigabelisten aus Excel/CSV in Private-Access-YAML-Dateien.
 
 .DESCRIPTION
 Liest das Tabellenblatt "Firewall" (oder CSV-Export) ein, normalisiert Ziele/Ports/Protokolle
