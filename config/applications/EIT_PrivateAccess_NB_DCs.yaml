@@ -20,7 +20,7 @@ spec:
       ports: ["88","123","135","389","445","464","636","3268","3269"]
       protocol: tcp,udp
     - host: 10.61.212.133
-      type: ip
+     type: ipAddress
       ports: ["88","123","135","389","445","464","636","3268","3269"]
       protocol: tcp,udp
     - host: visdmc02.nb.edeka.net
@@ -28,7 +28,7 @@ spec:
       ports: ["88","123","135","389","445","464","636","3268","3269"]
       protocol: tcp,udp
     - host: 10.61.213.178
-      type: ip
+     type: ipAddress
       ports: ["88","123","135","389","445","464","636","3268","3269"]
       protocol: tcp,udp
     - host: visdmc03.nb.edeka.net
@@ -36,7 +36,7 @@ spec:
       ports: ["88","123","135","389","445","464","636","3268","3269"]
       protocol: tcp,udp
     - host: 10.61.214.19
-      type: ip
+     type: ipAddress
       ports: ["88","123","135","389","445","464","636","3268","3269"]
       protocol: tcp,udp
   assignments:

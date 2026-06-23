@@ -20,7 +20,7 @@ spec:
       ports: ["88","123","135","389","445","464","636","3268","3269"]
       protocol: tcp,udp
     - host: 10.238.2.1
-      type: ip
+     type: ipAddress
       ports: ["88","123","135","389","445","464","636","3268","3269"]
       protocol: tcp,udp
     - host: hrszad02v2.edeka-hr.de
@@ -28,7 +28,7 @@ spec:
       ports: ["88","123","135","389","445","464","636","3268","3269"]
       protocol: tcp,udp
     - host: 10.238.2.2
-      type: ip
+     type: ipAddress
       ports: ["88","123","135","389","445","464","636","3268","3269"]
       protocol: tcp,udp
     - host: hrsazad07.edeka-hr.de
@@ -36,7 +36,7 @@ spec:
       ports: ["88","123","135","389","445","464","636","3268","3269"]
       protocol: tcp,udp
     - host: 10.238.2.7
-      type: ip
+     type: ipAddress
       ports: ["88","123","135","389","445","464","636","3268","3269"]
       protocol: tcp,udp
   assignments:

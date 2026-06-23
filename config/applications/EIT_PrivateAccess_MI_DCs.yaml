@@ -20,7 +20,7 @@ spec:
       ports: ["88","123","135","389","445","464","636","3268","3269"]
       protocol: tcp,udp
     - host: 172.17.2.202
-      type: ip
+     type: ipAddress
       ports: ["88","123","135","389","445","464","636","3268","3269"]
       protocol: tcp,udp
     - host: AD-MI-RODC3.mi.edeka.net
@@ -28,7 +28,7 @@ spec:
       ports: ["88","123","135","389","445","464","636","3268","3269"]
       protocol: tcp,udp
     - host: 10.67.129.8
-      type: ip
+     type: ipAddress
       ports: ["88","123","135","389","445","464","636","3268","3269"]
       protocol: tcp,udp
     - host: MISW14AC14.mi.edeka.net
@@ -36,7 +36,7 @@ spec:
       ports: ["88","123","135","389","445","464","636","3268","3269"]
       protocol: tcp,udp
     - host: 10.20.172.20
-      type: ip
+     type: ipAddress
       ports: ["88","123","135","389","445","464","636","3268","3269"]
       protocol: tcp,udp
     - host: MISW14EC14.mi.edeka.net
@@ -44,7 +44,7 @@ spec:
       ports: ["88","123","135","389","445","464","636","3268","3269"]
       protocol: tcp,udp
     - host: 10.20.236.20
-      type: ip
+     type: ipAddress
       ports: ["88","123","135","389","445","464","636","3268","3269"]
       protocol: tcp,udp
     - host: MISW2E4C14.mi.edeka.net
@@ -52,7 +52,7 @@ spec:
       ports: ["88","123","135","389","445","464","636","3268","3269"]
       protocol: tcp,udp
     - host: 10.46.76.20
-      type: ip
+     type: ipAddress
       ports: ["88","123","135","389","445","464","636","3268","3269"]
       protocol: tcp,udp
     - host: MISW2E7114.mi.edeka.net
@@ -60,7 +60,7 @@ spec:
       ports: ["88","123","135","389","445","464","636","3268","3269"]
       protocol: tcp,udp
     - host: 10.46.113.20
-      type: ip
+     type: ipAddress
       ports: ["88","123","135","389","445","464","636","3268","3269"]
       protocol: tcp,udp
     - host: MISW2E8D14.mi.edeka.net
@@ -68,7 +68,7 @@ spec:
       ports: ["88","123","135","389","445","464","636","3268","3269"]
       protocol: tcp,udp
     - host: 10.46.141.20
-      type: ip
+     type: ipAddress
       ports: ["88","123","135","389","445","464","636","3268","3269"]
       protocol: tcp,udp
     - host: MISW310880.mi.edeka.net
@@ -76,7 +76,7 @@ spec:
       ports: ["88","123","135","389","445","464","636","3268","3269"]
       protocol: tcp,udp
     - host: 10.49.8.128
-      type: ip
+     type: ipAddress
       ports: ["88","123","135","389","445","464","636","3268","3269"]
       protocol: tcp,udp
     - host: MISW312880.mi.edeka.net
@@ -84,7 +84,7 @@ spec:
       ports: ["88","123","135","389","445","464","636","3268","3269"]
       protocol: tcp,udp
     - host: 10.49.40.128
-      type: ip
+     type: ipAddress
       ports: ["88","123","135","389","445","464","636","3268","3269"]
       protocol: tcp,udp
     - host: MISW438088.mi.edeka.net
@@ -92,7 +92,7 @@ spec:
       ports: ["88","123","135","389","445","464","636","3268","3269"]
       protocol: tcp,udp
     - host: 10.67.128.136
-      type: ip
+     type: ipAddress
       ports: ["88","123","135","389","445","464","636","3268","3269"]
       protocol: tcp,udp
     - host: MISW438089.mi.edeka.net
@@ -100,7 +100,7 @@ spec:
       ports: ["88","123","135","389","445","464","636","3268","3269"]
       protocol: tcp,udp
     - host: 10.67.128.137
-      type: ip
+     type: ipAddress
       ports: ["88","123","135","389","445","464","636","3268","3269"]
       protocol: tcp,udp
     - host: MISW44000A.mi.edeka.net
@@ -108,7 +108,7 @@ spec:
       ports: ["88","123","135","389","445","464","636","3268","3269"]
       protocol: tcp,udp
     - host: 10.68.0.10
-      type: ip
+     type: ipAddress
       ports: ["88","123","135","389","445","464","636","3268","3269"]
       protocol: tcp,udp
     - host: MISW44000B.mi.edeka.net
@@ -116,7 +116,7 @@ spec:
       ports: ["88","123","135","389","445","464","636","3268","3269"]
       protocol: tcp,udp
     - host: 10.68.0.11
-      type: ip
+     type: ipAddress
       ports: ["88","123","135","389","445","464","636","3268","3269"]
       protocol: tcp,udp
     - host: MISW44000C.mi.edeka.net
@@ -124,7 +124,7 @@ spec:
       ports: ["88","123","135","389","445","464","636","3268","3269"]
       protocol: tcp,udp
     - host: 10.68.0.12
-      type: ip
+     type: ipAddress
       ports: ["88","123","135","389","445","464","636","3268","3269"]
       protocol: tcp,udp
     - host: MISW44000D.mi.edeka.net
@@ -132,7 +132,7 @@ spec:
       ports: ["88","123","135","389","445","464","636","3268","3269"]
       protocol: tcp,udp
     - host: 10.68.0.13
-      type: ip
+     type: ipAddress
       ports: ["88","123","135","389","445","464","636","3268","3269"]
       protocol: tcp,udp
     - host: MISW44000E.mi.edeka.net
@@ -140,7 +140,7 @@ spec:
       ports: ["88","123","135","389","445","464","636","3268","3269"]
       protocol: tcp,udp
     - host: 10.68.0.14
-      type: ip
+     type: ipAddress
       ports: ["88","123","135","389","445","464","636","3268","3269"]
       protocol: tcp,udp
     - host: MISW5AFA80.mi.edeka.net
@@ -148,7 +148,7 @@ spec:
       ports: ["88","123","135","389","445","464","636","3268","3269"]
       protocol: tcp,udp
     - host: 10.90.250.128
-      type: ip
+     type: ipAddress
       ports: ["88","123","135","389","445","464","636","3268","3269"]
       protocol: tcp,udp
   assignments:
