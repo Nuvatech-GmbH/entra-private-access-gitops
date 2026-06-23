@@ -47,6 +47,7 @@ import/excel/*
 !import/excel/.gitkeep
 import/output/
 import/logs/
+import/.venv/
 !import/mappings/*.example
 !import/mappings/*.json.example
 !import/templates/
