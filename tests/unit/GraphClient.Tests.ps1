@@ -3,6 +3,19 @@ BeforeAll {
     . (Join-Path $RepoRoot 'modules/PrivateAccess/Private/GraphClient.ps1')
 }
 
+Describe 'ConvertTo-GSAGraphObjectIdString' {
+    It 'wandelt Guid und String in normalisierte ObjectId um' {
+        $guid = [guid]'11111111-2222-3333-4444-555555555555'
+        ConvertTo-GSAGraphObjectIdString -Value $guid | Should -Be '11111111-2222-3333-4444-555555555555'
+        ConvertTo-GSAGraphObjectIdString -Value ' 11111111-2222-3333-4444-555555555555 ' | Should -Be '11111111-2222-3333-4444-555555555555'
+    }
+
+    It 'liest id aus verschachteltem Graph-Objekt' {
+        $obj = [pscustomobject]@{ id = 'aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee' }
+        ConvertTo-GSAGraphObjectIdString -Value $obj | Should -Be 'aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee'
+    }
+}
+
 Describe 'ConvertTo-GSAGraphPortRange' {
     It 'wandelt einzelnen Port in Bereich um' {
         ConvertTo-GSAGraphPortRange -Port '3389' | Should -Be '3389-3389'
@@ -29,13 +42,15 @@ Describe 'New-GSASegmentPayload' {
 }
 
 Describe 'Get-GSAGraphSegmentDestinationCandidates' {
-    It 'bietet ipRangeCidr/32 als Fallback für einzelne IPv4' {
+    It 'bevorzugt ipAddress und bietet ipRangeCidr/32 als Fallback für einzelne IPv4' {
         $c = Get-GSAGraphSegmentDestinationCandidates -Destination @{
             host = '10.0.1.1'
             type = 'ipAddress'
         }
-        @($c | ForEach-Object { $_.destinationType }) | Should -Contain 'ipAddress'
+        $c[0].destinationType | Should -Be 'ipAddress'
+        $c[0].destinationHost | Should -Be '10.0.1.1'
         @($c | ForEach-Object { $_.destinationType }) | Should -Contain 'ipRangeCidr'
+        ($c | Where-Object { $_.destinationType -eq 'ipRangeCidr' } | Select-Object -First 1).destinationHost | Should -Be '10.0.1.1/32'
     }
 
     It 'bietet ipRange-Varianten und ipRangeCidr-Fallback für Start–Ende' {

@@ -351,6 +351,119 @@ function Get-GSAConnectorGroupByName {
     return $resp.value[0]
 }
 
+function ConvertTo-GSAGraphObjectIdString {
+    param(
+        [AllowNull()][object]$Value,
+        [string]$ParameterName = 'ObjectId',
+        [switch]$AllowEmpty
+    )
+
+    if ($null -eq $Value) {
+        if ($AllowEmpty) { return '' }
+        throw "$ParameterName ist null und kann nicht in eine Graph-ObjectId umgewandelt werden."
+    }
+
+    if ($Value -is [System.Array]) {
+        $items = @($Value)
+        if ($items.Count -eq 0) {
+            if ($AllowEmpty) { return '' }
+            throw "$ParameterName ist ein leeres Array."
+        }
+        if ($items.Count -gt 1) {
+            Write-GSAStructuredLog -Level 'Warning' -Message "Mehrere Werte für $ParameterName; es wird der erste verwendet." -Data @{
+                parameterName = $ParameterName
+                count         = $items.Count
+            }
+        }
+        $Value = $items[0]
+    }
+
+    if ($Value -is [guid]) {
+        return $Value.ToString()
+    }
+
+    if ($Value.PSObject.Properties['id']) {
+        $nestedId = $Value.id
+        if ($null -ne $nestedId) {
+            return (ConvertTo-GSAGraphObjectIdString -Value $nestedId -ParameterName $ParameterName -AllowEmpty:$AllowEmpty)
+        }
+    }
+
+    $text = [string]$Value
+    if ([string]::IsNullOrWhiteSpace($text)) {
+        if ($AllowEmpty) { return '' }
+        throw "$ParameterName ist leer und kann nicht in eine Graph-ObjectId umgewandelt werden."
+    }
+
+    return $text.Trim()
+}
+
+function Get-GSAServicePrincipalIdByAppId {
+    param(
+        [Parameter(Mandatory)][string]$ApplicationAppId,
+        [Parameter(Mandatory)][string]$CorrelationId,
+        [int]$MaxWaitSeconds = 120,
+        [int]$PollIntervalSeconds = 3
+    )
+
+    if ([string]::IsNullOrWhiteSpace($ApplicationAppId)) {
+        throw 'ApplicationAppId ist leer; der Service Principal kann nicht per appId aufgelöst werden.'
+    }
+
+    $filter = [uri]::EscapeDataString("appId eq '$ApplicationAppId'")
+    $uri = Format-GSAGraphResourceUri 'https://graph.microsoft.com/v1.0/servicePrincipals?$filter={0}&$select=id' $filter
+    $deadline = (Get-Date).AddSeconds($MaxWaitSeconds)
+    $attempt = 0
+
+    while ($true) {
+        $attempt++
+        $resp = Invoke-GSARetryableOperation -Action { Invoke-GSAGraphBetaRequest -Method GET -RelativeUri $uri }
+        $items = @($resp.value)
+        if ($items.Count -gt 0) {
+            if ($items.Count -gt 1) {
+                Write-GSAStructuredLog -Level 'Warning' -CorrelationId $CorrelationId -Message 'Mehrere Service Principals für dieselbe appId gefunden; es wird der erste Treffer verwendet.' -Data @{
+                    applicationAppId = $ApplicationAppId
+                    count            = $items.Count
+                }
+            }
+
+            try {
+                $resolvedId = ConvertTo-GSAGraphObjectIdString -Value $items[0].id -ParameterName 'servicePrincipalId'
+            }
+            catch {
+                Write-GSAStructuredLog -Level 'Warning' -CorrelationId $CorrelationId -Message 'Service Principal in Graph-Antwort ohne gültige id; erneuter Versuch.' -Data @{
+                    applicationAppId = $ApplicationAppId
+                    attempt          = $attempt
+                    error            = $_.Exception.Message
+                }
+                if ((Get-Date) -gt $deadline) { throw }
+                Start-Sleep -Seconds $PollIntervalSeconds
+                continue
+            }
+
+            if ($attempt -gt 1) {
+                Write-GSAStructuredLog -Level 'Information' -CorrelationId $CorrelationId -Message 'Service Principal nach appId verfügbar (nach Replikations-Wartezeit).' -Data @{
+                    applicationAppId   = $ApplicationAppId
+                    servicePrincipalId = $resolvedId
+                    attempts           = $attempt
+                }
+            }
+            return $resolvedId
+        }
+
+        if ((Get-Date) -gt $deadline) {
+            throw "Service Principal für appId '$ApplicationAppId' wurde nicht gefunden (Timeout ${MaxWaitSeconds}s)."
+        }
+
+        Write-GSAStructuredLog -Level 'Information' -CorrelationId $CorrelationId -Message 'Service Principal noch nicht repliziert; erneuter Versuch.' -Data @{
+            applicationAppId = $ApplicationAppId
+            attempt          = $attempt
+            waitSeconds      = $PollIntervalSeconds
+        }
+        Start-Sleep -Seconds $PollIntervalSeconds
+    }
+}
+
 function Resolve-GSAServicePrincipalId {
     param(
         [string]$ServicePrincipalId,
@@ -358,41 +471,58 @@ function Resolve-GSAServicePrincipalId {
         [Parameter(Mandatory)][string]$CorrelationId
     )
 
+    if (-not [string]::IsNullOrWhiteSpace($ApplicationAppId)) {
+        $resolvedId = Get-GSAServicePrincipalIdByAppId -ApplicationAppId $ApplicationAppId -CorrelationId $CorrelationId
+        if (-not [string]::IsNullOrWhiteSpace($ServicePrincipalId) -and $resolvedId -ne $ServicePrincipalId.Trim()) {
+            Write-GSAStructuredLog -Level 'Warning' -CorrelationId $CorrelationId -Message 'Instantiate servicePrincipal.id weicht von appId-Auflösung ab; appId-Auflösung wird verwendet.' -Data @{
+                instantiateServicePrincipalId = $ServicePrincipalId.Trim()
+                resolvedServicePrincipalId    = $resolvedId
+                applicationAppId              = $ApplicationAppId
+            }
+        }
+        return $resolvedId
+    }
+
     if (-not [string]::IsNullOrWhiteSpace($ServicePrincipalId)) {
         return $ServicePrincipalId.Trim()
     }
 
-    if ([string]::IsNullOrWhiteSpace($ApplicationAppId)) {
-        throw 'Service-Principal-ID fehlt: Die Template-Instantiate-Response enthielt keine servicePrincipal.id und es wurde keine application.appId übergeben.'
+    throw 'Service-Principal-ID fehlt: Weder application.appId noch servicePrincipal.id wurden übergeben.'
+}
+
+function Get-GSAGraphServicePrincipalAppRoles {
+    param([Parameter(Mandatory)][object]$ServicePrincipalId)
+
+    $spId = ConvertTo-GSAGraphObjectIdString -Value $ServicePrincipalId -ParameterName 'ServicePrincipalId'
+
+    $shouldRetry = {
+        param($ErrorRecord)
+        $msg = $ErrorRecord.Exception.Message
+        if ($msg -match '429|503|504|timeout|Too Many Requests') { return $true }
+        if ($msg -match '404|ResourceNotFound|does not exist') { return $true }
+        return $false
     }
 
-    $filter = [uri]::EscapeDataString("appId eq '$ApplicationAppId'")
-    $uri = Format-GSAGraphResourceUri 'https://graph.microsoft.com/v1.0/servicePrincipals?$filter={0}&$select=id' $filter
-    $resp = Invoke-GSARetryableOperation -Action { Invoke-GSAGraphBetaRequest -Method GET -RelativeUri $uri }
-    if (-not $resp.value -or $resp.value.Count -eq 0) {
-        throw "Service Principal für appId '$ApplicationAppId' wurde nicht gefunden."
+    foreach ($apiVersion in @('beta', 'v1.0')) {
+        $uri = Format-GSAGraphResourceUri "https://graph.microsoft.com/$apiVersion/servicePrincipals/{0}?$select=id,appRoles" $spId
+        try {
+            return Invoke-GSARetryableOperation -Action { Invoke-GSAGraphBetaRequest -Method GET -RelativeUri $uri } -ShouldRetry $shouldRetry -MaxAttempts 8 -InitialBackoffMs 500
+        }
+        catch {
+            if ($apiVersion -eq 'v1.0') { throw }
+        }
     }
-
-    $resolvedId = [string]$resp.value[0].id
-    Write-GSAStructuredLog -Level 'Information' -CorrelationId $CorrelationId -Message 'Service Principal nach appId aufgelöst (instantiate ohne servicePrincipal.id).' -Data @{
-        applicationAppId   = $ApplicationAppId
-        servicePrincipalId = $resolvedId
-    }
-    return $resolvedId
 }
 
 function Get-GSADefaultUserAppRoleId {
-    param([Parameter(Mandatory)][string]$ServicePrincipalId)
+    param([Parameter(Mandatory)][object]$ServicePrincipalId)
 
-    if ([string]::IsNullOrWhiteSpace($ServicePrincipalId)) {
-        throw 'ServicePrincipalId ist leer; die AppRole ''User'' kann nicht ermittelt werden.'
-    }
+    $spId = ConvertTo-GSAGraphObjectIdString -Value $ServicePrincipalId -ParameterName 'ServicePrincipalId'
 
-    $uri = Format-GSAGraphResourceUri 'https://graph.microsoft.com/beta/servicePrincipals/{0}?$select=id,appRoles' $ServicePrincipalId
-    $sp = Invoke-GSARetryableOperation -Action { Invoke-GSAGraphBetaRequest -Method GET -RelativeUri $uri }
+    $sp = Get-GSAGraphServicePrincipalAppRoles -ServicePrincipalId $spId
     $role = $sp.appRoles | Where-Object { $_.displayName -eq 'User' -and $_.isEnabled -eq $true } | Select-Object -First 1
     if (-not $role) {
-        throw "Konnte die Standard-AppRole 'User' am Service Principal $ServicePrincipalId nicht ermitteln."
+        throw "Konnte die Standard-AppRole 'User' am Service Principal $spId nicht ermitteln."
     }
     return [guid]$role.id
 }
@@ -437,11 +567,10 @@ function Get-GSAApplicationSegments {
 }
 
 function Get-GSAAppRoleAssignmentsForResource {
-    param([Parameter(Mandatory)][string]$ServicePrincipalId)
-    if ([string]::IsNullOrWhiteSpace($ServicePrincipalId)) {
-        throw 'ServicePrincipalId ist leer; AppRole-Zuweisungen können nicht gelesen werden.'
-    }
-    $uri = Format-GSAGraphResourceUri 'https://graph.microsoft.com/beta/servicePrincipals/{0}/appRoleAssignedTo' $ServicePrincipalId
+    param([Parameter(Mandatory)][object]$ServicePrincipalId)
+
+    $spId = ConvertTo-GSAGraphObjectIdString -Value $ServicePrincipalId -ParameterName 'ServicePrincipalId'
+    $uri = Format-GSAGraphResourceUri 'https://graph.microsoft.com/beta/servicePrincipals/{0}/appRoleAssignedTo' $spId
     $resp = Invoke-GSARetryableOperation -Action { Invoke-GSAGraphBetaRequest -Method GET -RelativeUri $uri }
     return @($resp.value)
 }
@@ -794,7 +923,7 @@ function Wait-GSAApplicationSegmentBySignature {
 function Get-GSAGraphSegmentDestinationCandidates {
     <#
     .SYNOPSIS
-    Liefert destinationHost/destinationType-Varianten (Graph ist bei IP-RDP oft mit ipRangeCidr /32 strikter).
+    Liefert destinationHost/destinationType-Varianten für Graph-POST (YAML-Typ hat Vorrang; CIDR/32 nur Fallback).
     #>
     param([Parameter(Mandatory)][hashtable]$Destination)
 
@@ -812,10 +941,10 @@ function Get-GSAGraphSegmentDestinationCandidates {
         }
     }
 
-    # Einzel-IPv4: Graph/Portal legen oft ipRangeCidr/32 an – zuerst probieren, YAML-Typ ipAddress bleibt gültig
+    # Einzel-IPv4: YAML-Typ ipAddress zuerst; ipRangeCidr/32 nur wenn Graph ipAddress ablehnt
     if ($typeValue -eq 'ipAddress' -and $hostValue -match '^(?:\d{1,3}\.){3}\d{1,3}$') {
-        & $addCandidate "$hostValue/32" 'ipRangeCidr'
         & $addCandidate $hostValue 'ipAddress'
+        & $addCandidate "$hostValue/32" 'ipRangeCidr'
     }
     elseif ($typeValue -eq 'ipRange') {
         $range = ConvertFrom-GSAIpRangeHostString -HostValue $hostValue
@@ -995,7 +1124,7 @@ Versuche und Graph-Antworten:
 $allErrorsText
 
 Hinweise:
-- Für RDP auf eine einzelne IP empfiehlt sich in YAML: type ipRangeCidr, host 10.0.1.1/32
+- Für eine einzelne IPv4 in YAML: type ipAddress und host 10.0.1.1 (bevorzugt; Fallback ipRangeCidr/32)
 - type ipRange (Start–Ende): Graph akzeptiert oft nur ipRangeCidr; das Modul probiert mehrere Formate und ein passendes CIDR
 - Connector Group muss mindestens einen aktiven Connector enthalten
 - Private Access / Entra Suite Lizenz im Tenant aktiv

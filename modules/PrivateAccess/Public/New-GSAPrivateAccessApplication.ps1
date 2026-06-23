@@ -25,7 +25,7 @@ function New-GSAPrivateAccessApplication {
     $applicationAppId = [string]$created.application.appId
     $instantiateSpId = $null
     if ($created.servicePrincipal) {
-        $instantiateSpId = [string]$created.servicePrincipal.id
+        $instantiateSpId = ConvertTo-GSAGraphObjectIdString -Value $created.servicePrincipal.id -ParameterName 'instantiateServicePrincipalId' -AllowEmpty
     }
     $spId = Resolve-GSAServicePrincipalId -ServicePrincipalId $instantiateSpId -ApplicationAppId $applicationAppId -CorrelationId $CorrelationId
 
@@ -36,8 +36,8 @@ function New-GSAPrivateAccessApplication {
         $ourFilter = "appId eq '$($ctx.ClientId)'"
         $ourUri = Format-GSAGraphResourceUri 'https://graph.microsoft.com/v1.0/servicePrincipals?$filter={0}&$select=id' ([uri]::EscapeDataString($ourFilter))
         $ourSp = Invoke-GSARetryableOperation -Action { Invoke-GSAGraphBetaRequest -Method GET -RelativeUri $ourUri }
-        if ($ourSp.value -and $ourSp.value.Count -gt 0) {
-            $pipelineSpId = [string]$ourSp.value[0].id
+        if ($ourSp.value -and @($ourSp.value).Count -gt 0) {
+            $pipelineSpId = ConvertTo-GSAGraphObjectIdString -Value $ourSp.value[0].id -ParameterName 'pipelineServicePrincipalId'
         }
     }
 
@@ -64,6 +64,8 @@ function New-GSAPrivateAccessApplication {
         } | Out-Null
     }
 
+    # Nach Segment-Erstellung erneut auflösen: instantiate servicePrincipal.id kann kurzzeitig ungültig sein.
+    $spId = Resolve-GSAServicePrincipalId -ApplicationAppId $applicationAppId -CorrelationId $CorrelationId
     $userRoleId = Get-GSADefaultUserAppRoleId -ServicePrincipalId $spId
     foreach ($a in @($spec.assignments)) {
         $principalId = $null

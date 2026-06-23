@@ -40,8 +40,8 @@ function Set-GSAPrivateAccessApplication {
         $ourFilter = "appId eq '$($ctx.ClientId)'"
         $ourUri = "https://graph.microsoft.com/v1.0/servicePrincipals?`$filter=$([uri]::EscapeDataString($ourFilter))&`$select=id"
         $ourSp = Invoke-GSARetryableOperation -Action { Invoke-GSAGraphBetaRequest -Method GET -RelativeUri $ourUri }
-        if ($ourSp.value -and $ourSp.value.Count -gt 0) {
-            $pipelineSpId = [string]$ourSp.value[0].id
+        if ($ourSp.value -and @($ourSp.value).Count -gt 0) {
+            $pipelineSpId = ConvertTo-GSAGraphObjectIdString -Value $ourSp.value[0].id -ParameterName 'pipelineServicePrincipalId'
         }
     }
 

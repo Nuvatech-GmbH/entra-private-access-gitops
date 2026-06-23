@@ -23,16 +23,13 @@ function Get-GSAPrivateAccessApplication {
         $app = Get-GSAApplicationById -ApplicationId $objectId
     }
 
-    $spFilter = [uri]::EscapeDataString("appId eq '$($app.appId)'")
-    $spUri = Format-GSAGraphResourceUri 'https://graph.microsoft.com/beta/servicePrincipals?$filter={0}&$select=id,appId,displayName' $spFilter
-    $sps = Invoke-GSARetryableOperation -Action { Invoke-GSAGraphBetaRequest -Method GET -RelativeUri $spUri }
-    $sp = @($sps.value) | Select-Object -First 1
+    $spId = Get-GSAServicePrincipalIdByAppId -ApplicationAppId ([string]$app.appId) -CorrelationId $CorrelationId
 
     return [pscustomobject]@{
         ApplicationId         = [string]$app.id
         AppId                 = [string]$app.appId
         DisplayName           = [string]$app.displayName
-        ServicePrincipalId    = [string]$sp.id
+        ServicePrincipalId    = $spId
         OnPremisesPublishing  = $app.onPremisesPublishing
     }
 }
