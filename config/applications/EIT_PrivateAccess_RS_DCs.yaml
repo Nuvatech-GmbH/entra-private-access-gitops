@@ -20,7 +20,7 @@ spec:
       ports: ["88","123","135","389","445","464","636","3268","3269"]
       protocol: tcp,udp
     - host: 10.125.96.101
-     type: ipAddress
+      type: ipAddress
       ports: ["88","123","135","389","445","464","636","3268","3269"]
       protocol: tcp,udp
     - host: hesglodc3.rs.edeka.net
@@ -28,7 +28,7 @@ spec:
       ports: ["88","123","135","389","445","464","636","3268","3269"]
       protocol: tcp,udp
     - host: 10.125.96.103
-     type: ipAddress
+      type: ipAddress
       ports: ["88","123","135","389","445","464","636","3268","3269"]
       protocol: tcp,udp
     - host: essglodc1.rs.edeka.net
@@ -36,7 +36,7 @@ spec:
       ports: ["88","123","135","389","445","464","636","3268","3269"]
       protocol: tcp,udp
     - host: 10.125.96.100
-     type: ipAddress
+      type: ipAddress
       ports: ["88","123","135","389","445","464","636","3268","3269"]
       protocol: tcp,udp
     - host: essglodc3.rs.edeka.net
@@ -44,7 +44,7 @@ spec:
       ports: ["88","123","135","389","445","464","636","3268","3269"]
       protocol: tcp,udp
     - host: 10.125.96.102
-     type: ipAddress
+      type: ipAddress
       ports: ["88","123","135","389","445","464","636","3268","3269"]
       protocol: tcp,udp
   assignments:

@@ -20,7 +20,7 @@ spec:
       ports: ["88","123","135","389","445","464","636","3268","3269"]
       protocol: tcp,udp
     - host: 10.127.136.11
-     type: ipAddress
+      type: ipAddress
       ports: ["88","123","135","389","445","464","636","3268","3269"]
       protocol: tcp,udp
     - host: GR1W00003P002.eh.int.edeka
@@ -28,7 +28,7 @@ spec:
       ports: ["88","123","135","389","445","464","636","3268","3269"]
       protocol: tcp,udp
     - host: 10.127.136.12
-     type: ipAddress
+      type: ipAddress
       ports: ["88","123","135","389","445","464","636","3268","3269"]
       protocol: tcp,udp
     - host: GR1W00003P003.eh.int.edeka
@@ -36,7 +36,7 @@ spec:
       ports: ["88","123","135","389","445","464","636","3268","3269"]
       protocol: tcp,udp
     - host: 10.127.136.13
-     type: ipAddress
+      type: ipAddress
       ports: ["88","123","135","389","445","464","636","3268","3269"]
       protocol: tcp,udp
     - host: GR1W00003P004.eh.int.edeka
@@ -44,7 +44,7 @@ spec:
       ports: ["88","123","135","389","445","464","636","3268","3269"]
       protocol: tcp,udp
     - host: 10.127.136.14
-     type: ipAddress
+      type: ipAddress
       ports: ["88","123","135","389","445","464","636","3268","3269"]
       protocol: tcp,udp
   assignments:
