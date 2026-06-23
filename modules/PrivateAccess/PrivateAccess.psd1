@@ -14,6 +14,7 @@
     FunctionsToExport = @(
         'Initialize-GSAGraphSession',
         'Connect-GSAEnvironment',
+        'Get-GSAApplicationConfigFiles',
         'Get-GSAPrivateAccessApplication',
         'New-GSAPrivateAccessApplication',
         'Set-GSAPrivateAccessApplication',

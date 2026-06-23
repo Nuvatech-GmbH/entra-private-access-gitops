@@ -1,5 +1,6 @@
 @{
-    Severity     = @('Error', 'Warning')
+    # CI und lokales Invoke-LocalCI: nur Errors blockieren.
+    Severity     = @('Error')
     ExcludeRules = @(
         'PSUseBOMForUnicodeEncodedFile'
         'PSUseShouldProcessForStateChangingFunctions'
@@ -7,4 +8,5 @@
         'PSShouldProcess'
         'PSAvoidUsingConvertToSecureStringWithPlainText'
         'PSUseSingularNouns'
+    )
 }

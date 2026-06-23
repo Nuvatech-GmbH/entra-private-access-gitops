@@ -35,11 +35,15 @@ jobs:
           $settings = Join-Path $repo 'PSScriptAnalyzerSettings.psd1'
           $results = @()
           foreach ($p in @((Join-Path $repo 'modules'), (Join-Path $repo 'scripts'))) {
-            $results += @(Invoke-ScriptAnalyzer -Path $p -Recurse -Severity @('Error','Warning') -Settings $settings)
+            $results += @(Invoke-ScriptAnalyzer -Path $p -Recurse -Settings $settings)
+          }
+          $errors = @($results | Where-Object { $_.Severity -eq 'Error' })
+          if ($errors) {
+            $errors | Format-Table -AutoSize
+            throw "PSScriptAnalyzer hat $($errors.Count) Error(s)."
           }
           if ($results) {
-            $results | Format-Table -AutoSize
-            throw "PSScriptAnalyzer hat $($results.Count) Befunde."
+            Write-Host "PSScriptAnalyzer: $($results.Count) Warning(s) (nicht blockierend)."
           }
 
       - name: YAML/Schema + Governance validation

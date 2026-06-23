@@ -10,6 +10,7 @@ foreach ($s in ($privateScripts + $publicScripts)) {
 Export-ModuleMember -Function @(
     'Initialize-GSAGraphSession',
     'Connect-GSAEnvironment',
+    'Get-GSAApplicationConfigFiles',
     'Get-GSAPrivateAccessApplication',
     'New-GSAPrivateAccessApplication',
     'Set-GSAPrivateAccessApplication',

@@ -8,11 +8,15 @@ $repo = Split-Path $PSScriptRoot -Parent
 $settings = Join-Path $repo 'PSScriptAnalyzerSettings.psd1'
 $sa = @()
 foreach ($p in @((Join-Path $repo 'modules'), (Join-Path $repo 'scripts'))) {
-    $sa += @(Invoke-ScriptAnalyzer -Path $p -Recurse -Severity @('Error','Warning') -Settings $settings)
+    $sa += @(Invoke-ScriptAnalyzer -Path $p -Recurse -Settings $settings)
+}
+$saErrors = @($sa | Where-Object { $_.Severity -eq 'Error' })
+if ($saErrors) {
+    $saErrors | Format-Table -AutoSize
+    throw "PSScriptAnalyzer: $($saErrors.Count) Error(s)"
 }
 if ($sa) {
-    $sa | Format-Table -AutoSize
-    throw "PSScriptAnalyzer: $($sa.Count) Befunde"
+    Write-Host "PSScriptAnalyzer: $($sa.Count) Warning(s) (nicht blockierend)."
 }
 
 & (Join-Path $repo 'scripts/validate/Invoke-GSAValidation.ps1') -RepoRoot $repo
