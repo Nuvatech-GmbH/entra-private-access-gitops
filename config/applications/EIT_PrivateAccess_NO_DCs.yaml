@@ -1,0 +1,84 @@
+apiVersion: gsa.gitops/v1
+kind: PrivateAccessApplication
+metadata:
+  name: EIT_PrivateAccess_NO_DCs
+  description: Private Access Domain Controllers – EIT_PrivateAccess_NO-GH_DCs.
+  owners:
+    - florian.ried@extern.edeka.de
+    - ertan.simsek@extern.edeka.de
+  changeReference: EIT-PRIVATEACCESS-NO-DCS-001
+  tags:
+    workload: domaincontrollers
+    pilot: "true"
+spec:
+  applicationType: enterprise
+  isAccessibleViaZTNAClient: true
+  connectorGroup: Nord Frontend
+  destinations:
+    - host: msadno01-p1.n.edeka.net
+      type: fqdn
+      ports: ["88","123","135","389","445","464","636","3268","3269"]
+      protocol: tcp,udp
+    - host: 10.57.4.3
+      type: ip
+      ports: ["88","123","135","389","445","464","636","3268","3269"]
+      protocol: tcp,udp
+    - host: msadno01-p2.n.edeka.net
+      type: fqdn
+      ports: ["88","123","135","389","445","464","636","3268","3269"]
+      protocol: tcp,udp
+    - host: 10.57.4.4
+      type: ip
+      ports: ["88","123","135","389","445","464","636","3268","3269"]
+      protocol: tcp,udp
+    - host: msadno01-mal-p1.n.edeka.net
+      type: fqdn
+      ports: ["88","123","135","389","445","464","636","3268","3269"]
+      protocol: tcp,udp
+    - host: 10.56.14.199
+      type: ip
+      ports: ["88","123","135","389","445","464","636","3268","3269"]
+      protocol: tcp,udp
+    - host: msadno01-mal-p2.n.edeka.net
+      type: fqdn
+      ports: ["88","123","135","389","445","464","636","3268","3269"]
+      protocol: tcp,udp
+    - host: 10.56.14.140
+      type: ip
+      ports: ["88","123","135","389","445","464","636","3268","3269"]
+      protocol: tcp,udp
+    - host: msadno01-zar-p1.n.edeka.net
+      type: fqdn
+      ports: ["88","123","135","389","445","464","636","3268","3269"]
+      protocol: tcp,udp
+    - host: 10.56.33.10
+      type: ip
+      ports: ["88","123","135","389","445","464","636","3268","3269"]
+      protocol: tcp,udp
+    - host: msadno01-zar-p2.n.edeka.net
+      type: fqdn
+      ports: ["88","123","135","389","445","464","636","3268","3269"]
+      protocol: tcp,udp
+    - host: 10.56.33.11
+      type: ip
+      ports: ["88","123","135","389","445","464","636","3268","3269"]
+      protocol: tcp,udp
+    - host: msadno01-val-p1.n.edeka.net
+      type: fqdn
+      ports: ["88","123","135","389","445","464","636","3268","3269"]
+      protocol: tcp,udp
+    - host: 10.56.24.10
+      type: ip
+      ports: ["88","123","135","389","445","464","636","3268","3269"]
+      protocol: tcp,udp
+    - host: msadno01-val-p2.n.edeka.net
+      type: fqdn
+      ports: ["88","123","135","389","445","464","636","3268","3269"]
+      protocol: tcp,udp
+    - host: 10.56.24.11
+      type: ip
+      ports: ["88","123","135","389","445","464","636","3268","3269"]
+      protocol: tcp,udp
+  assignments:
+    - principalType: Group
+      principalName: EIT_Intune_EIT_cfg Private Access PILOT

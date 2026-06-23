@@ -1,0 +1,52 @@
+apiVersion: gsa.gitops/v1
+kind: PrivateAccessApplication
+metadata:
+  name: EIT_PrivateAccess_RR_DCs
+  description: Private Access Domain Controllers – EIT_PrivateAccess_RR-GH_DCs.
+  owners:
+    - florian.ried@extern.edeka.de
+    - ertan.simsek@extern.edeka.de
+  changeReference: EIT-PRIVATEACCESS-RR-DCS-001
+  tags:
+    workload: domaincontrollers
+    pilot: "true"
+spec:
+  applicationType: enterprise
+  isAccessibleViaZTNAClient: true
+  connectorGroup: Rhein Ruhr - Frontend
+  destinations:
+    - host: rrsghdc01-mo.gh.rr.edekanet.de
+      type: fqdn
+      ports: ["88","123","135","389","445","464","636","3268","3269"]
+      protocol: tcp,udp
+    - host: 10.32.32.7
+      type: ip
+      ports: ["88","123","135","389","445","464","636","3268","3269"]
+      protocol: tcp,udp
+    - host: rrsghdc02-mo.gh.rr.edekanet.de
+      type: fqdn
+      ports: ["88","123","135","389","445","464","636","3268","3269"]
+      protocol: tcp,udp
+    - host: 10.32.32.8
+      type: ip
+      ports: ["88","123","135","389","445","464","636","3268","3269"]
+      protocol: tcp,udp
+    - host: rrsghdc03-mo.gh.rr.edekanet.de
+      type: fqdn
+      ports: ["88","123","135","389","445","464","636","3268","3269"]
+      protocol: tcp,udp
+    - host: 10.32.32.9
+      type: ip
+      ports: ["88","123","135","389","445","464","636","3268","3269"]
+      protocol: tcp,udp
+    - host: rrsghdc04-mo.gh.rr.edekanet.de
+      type: fqdn
+      ports: ["88","123","135","389","445","464","636","3268","3269"]
+      protocol: tcp,udp
+    - host: 10.32.32.29
+      type: ip
+      ports: ["88","123","135","389","445","464","636","3268","3269"]
+      protocol: tcp,udp
+  assignments:
+    - principalType: Group
+      principalName: EIT_Intune_EIT_cfg Private Access PILOT

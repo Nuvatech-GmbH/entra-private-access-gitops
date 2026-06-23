@@ -1,0 +1,44 @@
+apiVersion: gsa.gitops/v1
+kind: PrivateAccessApplication
+metadata:
+  name: EIT_PrivateAccess_NB_DCs
+  description: Private Access Domain Controllers – EIT_PrivateAccess_NB-GH_DCs.
+  owners:
+    - florian.ried@extern.edeka.de
+    - ertan.simsek@extern.edeka.de
+  changeReference: EIT-PRIVATEACCESS-NB-DCS-001
+  tags:
+    workload: domaincontrollers
+    pilot: "true"
+spec:
+  applicationType: enterprise
+  isAccessibleViaZTNAClient: true
+  connectorGroup: Nordbayern Frontend
+  destinations:
+    - host: visdmc01.nb.edeka.net
+      type: fqdn
+      ports: ["88","123","135","389","445","464","636","3268","3269"]
+      protocol: tcp,udp
+    - host: 10.61.212.133
+      type: ip
+      ports: ["88","123","135","389","445","464","636","3268","3269"]
+      protocol: tcp,udp
+    - host: visdmc02.nb.edeka.net
+      type: fqdn
+      ports: ["88","123","135","389","445","464","636","3268","3269"]
+      protocol: tcp,udp
+    - host: 10.61.213.178
+      type: ip
+      ports: ["88","123","135","389","445","464","636","3268","3269"]
+      protocol: tcp,udp
+    - host: visdmc03.nb.edeka.net
+      type: fqdn
+      ports: ["88","123","135","389","445","464","636","3268","3269"]
+      protocol: tcp,udp
+    - host: 10.61.214.19
+      type: ip
+      ports: ["88","123","135","389","445","464","636","3268","3269"]
+      protocol: tcp,udp
+  assignments:
+    - principalType: Group
+      principalName: EIT_Intune_EIT_cfg Private Access PILOT

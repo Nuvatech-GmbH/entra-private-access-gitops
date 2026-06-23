@@ -1,0 +1,124 @@
+apiVersion: gsa.gitops/v1
+kind: PrivateAccessApplication
+metadata:
+  name: EIT_PrivateAccess_SW_DCs
+  description: Private Access Domain Controllers – EIT_PrivateAccess_SW-GH_DCs.
+  owners:
+    - florian.ried@extern.edeka.de
+    - ertan.simsek@extern.edeka.de
+  changeReference: EIT-PRIVATEACCESS-SW-DCS-001
+  tags:
+    workload: domaincontrollers
+    pilot: "true"
+spec:
+  applicationType: enterprise
+  isAccessibleViaZTNAClient: true
+  connectorGroup: Suedwest Frontend
+  destinations:
+    - host: eblrz01dc1.sw.edeka.net
+      type: fqdn
+      ports: ["88","123","135","389","445","464","636","3268","3269"]
+      protocol: tcp,udp
+    - host: 10.101.50.91
+      type: ip
+      ports: ["88","123","135","389","445","464","636","3268","3269"]
+      protocol: tcp,udp
+    - host: eblrz01dc2.sw.edeka.net
+      type: fqdn
+      ports: ["88","123","135","389","445","464","636","3268","3269"]
+      protocol: tcp,udp
+    - host: 10.101.50.92
+      type: ip
+      ports: ["88","123","135","389","445","464","636","3268","3269"]
+      protocol: tcp,udp
+    - host: eblrz01dc3.sw.edeka.net
+      type: fqdn
+      ports: ["88","123","135","389","445","464","636","3268","3269"]
+      protocol: tcp,udp
+    - host: 10.101.50.187
+      type: ip
+      ports: ["88","123","135","389","445","464","636","3268","3269"]
+      protocol: tcp,udp
+    - host: eblrz02dc1.sw.edeka.net
+      type: fqdn
+      ports: ["88","123","135","389","445","464","636","3268","3269"]
+      protocol: tcp,udp
+    - host: 10.101.50.188
+      type: ip
+      ports: ["88","123","135","389","445","464","636","3268","3269"]
+      protocol: tcp,udp
+    - host: eblrz02dc2.sw.edeka.net
+      type: fqdn
+      ports: ["88","123","135","389","445","464","636","3268","3269"]
+      protocol: tcp,udp
+    - host: 10.101.50.189
+      type: ip
+      ports: ["88","123","135","389","445","464","636","3268","3269"]
+      protocol: tcp,udp
+    - host: eogrz01dc1.sw.edeka.net
+      type: fqdn
+      ports: ["88","123","135","389","445","464","636","3268","3269"]
+      protocol: tcp,udp
+    - host: 10.100.50.91
+      type: ip
+      ports: ["88","123","135","389","445","464","636","3268","3269"]
+      protocol: tcp,udp
+    - host: eogrz01dc2.sw.edeka.net
+      type: fqdn
+      ports: ["88","123","135","389","445","464","636","3268","3269"]
+      protocol: tcp,udp
+    - host: 10.100.50.92
+      type: ip
+      ports: ["88","123","135","389","445","464","636","3268","3269"]
+      protocol: tcp,udp
+    - host: eogrz02dc1.sw.edeka.net
+      type: fqdn
+      ports: ["88","123","135","389","445","464","636","3268","3269"]
+      protocol: tcp,udp
+    - host: 10.100.50.93
+      type: ip
+      ports: ["88","123","135","389","445","464","636","3268","3269"]
+      protocol: tcp,udp
+    - host: eogrz02dc2.sw.edeka.net
+      type: fqdn
+      ports: ["88","123","135","389","445","464","636","3268","3269"]
+      protocol: tcp,udp
+    - host: 10.100.50.94
+      type: ip
+      ports: ["88","123","135","389","445","464","636","3268","3269"]
+      protocol: tcp,udp
+    - host: fzrsrz01dc01.sw.edeka.net
+      type: fqdn
+      ports: ["88","123","135","389","445","464","636","3268","3269"]
+      protocol: tcp,udp
+    - host: 10.78.192.20
+      type: ip
+      ports: ["88","123","135","389","445","464","636","3268","3269"]
+      protocol: tcp,udp
+    - host: fzrsrz01dc02.sw.edeka.net
+      type: fqdn
+      ports: ["88","123","135","389","445","464","636","3268","3269"]
+      protocol: tcp,udp
+    - host: 10.78.192.21
+      type: ip
+      ports: ["88","123","135","389","445","464","636","3268","3269"]
+      protocol: tcp,udp
+    - host: fzrsrz02dc01.sw.edeka.net
+      type: fqdn
+      ports: ["88","123","135","389","445","464","636","3268","3269"]
+      protocol: tcp,udp
+    - host: 10.78.192.22
+      type: ip
+      ports: ["88","123","135","389","445","464","636","3268","3269"]
+      protocol: tcp,udp
+    - host: fzrsrz02dc02.sw.edeka.net
+      type: fqdn
+      ports: ["88","123","135","389","445","464","636","3268","3269"]
+      protocol: tcp,udp
+    - host: 10.78.192.23
+      type: ip
+      ports: ["88","123","135","389","445","464","636","3268","3269"]
+      protocol: tcp,udp
+  assignments:
+    - principalType: Group
+      principalName: EIT_Intune_EIT_cfg Private Access PILOT

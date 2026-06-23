@@ -1,0 +1,52 @@
+apiVersion: gsa.gitops/v1
+kind: PrivateAccessApplication
+metadata:
+  name: EIT_PrivateAccess_EIT_EH_DCs
+  description: Private Access Domain Controllers – EIT_PrivateAccess_EIT-EH_DCs.
+  owners:
+    - florian.ried@extern.edeka.de
+    - ertan.simsek@extern.edeka.de
+  changeReference: EIT-PRIVATEACCESS-EIT_EH-DCS-001
+  tags:
+    workload: domaincontrollers
+    pilot: "true"
+spec:
+  applicationType: enterprise
+  isAccessibleViaZTNAClient: true
+  connectorGroup: RZ Sued Frontend
+  destinations:
+    - host: GR1W00003P001.eh.int.edeka
+      type: fqdn
+      ports: ["88","123","135","389","445","464","636","3268","3269"]
+      protocol: tcp,udp
+    - host: 10.127.136.11
+      type: ip
+      ports: ["88","123","135","389","445","464","636","3268","3269"]
+      protocol: tcp,udp
+    - host: GR1W00003P002.eh.int.edeka
+      type: fqdn
+      ports: ["88","123","135","389","445","464","636","3268","3269"]
+      protocol: tcp,udp
+    - host: 10.127.136.12
+      type: ip
+      ports: ["88","123","135","389","445","464","636","3268","3269"]
+      protocol: tcp,udp
+    - host: GR1W00003P003.eh.int.edeka
+      type: fqdn
+      ports: ["88","123","135","389","445","464","636","3268","3269"]
+      protocol: tcp,udp
+    - host: 10.127.136.13
+      type: ip
+      ports: ["88","123","135","389","445","464","636","3268","3269"]
+      protocol: tcp,udp
+    - host: GR1W00003P004.eh.int.edeka
+      type: fqdn
+      ports: ["88","123","135","389","445","464","636","3268","3269"]
+      protocol: tcp,udp
+    - host: 10.127.136.14
+      type: ip
+      ports: ["88","123","135","389","445","464","636","3268","3269"]
+      protocol: tcp,udp
+  assignments:
+    - principalType: Group
+      principalName: EIT_Intune_EIT_cfg Private Access PILOT
