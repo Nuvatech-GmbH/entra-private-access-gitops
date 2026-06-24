@@ -51,7 +51,7 @@ Die Pipeline prüft diese Permission vor dem Deploy (`Test-GSAPipelineGraphAppPe
 ## Graph 400 beim Application Segment (POST applicationSegments)
 
 - **Ports:** Graph erwartet `"3389-3389"`, nicht `"3389"`. Im Repo wird `3389` beim Deploy automatisch zu `3389-3389` normalisiert.
-- **Einzelne IPv4:** In YAML `type: ipAddress` und `host: 10.0.1.1` verwenden (entspricht dem Portal-Typ „IP address“). Das Deploy-Modul fällt nur bei Graph-Fehlern auf `ipRangeCidr` mit `/32` zurück.
+- **Einzelne IPv4:** In YAML `type: ipAddress` und `host: 10.0.1.1`. Das Deploy-Modul sendet den Graph-Wire-Typ **`ip`** (wie Microsoft Entra SDK); **kein** automatischer Fallback auf `ipRangeCidr/32`. Bestehende CIDR-/32-Segmente für dieselbe IP werden beim nächsten **Update-Deploy** repariert (löschen + neu als `ip`) — auch wenn Host/Port inhaltlich schon passen.
 - **Payload:** Kein `@odata.type` im POST (Microsoft Learn); die Pipeline probiert automatisch Varianten.
 - **Connector Group** muss mindestens einen **aktiven** Connector enthalten.
 - **host/type:** `fqdn` erfordert einen Hostnamen; CIDR-Notation nur mit `ipRangeCidr`.

@@ -42,15 +42,15 @@ Describe 'New-GSASegmentPayload' {
 }
 
 Describe 'Get-GSAGraphSegmentDestinationCandidates' {
-    It 'bevorzugt ipAddress und bietet ipRangeCidr/32 als Fallback für einzelne IPv4' {
+    It 'verwendet Graph-Wire-Typ ip für Einzel-IPv4 ohne CIDR-/32-Fallback' {
         $c = Get-GSAGraphSegmentDestinationCandidates -Destination @{
             host = '10.0.1.1'
             type = 'ipAddress'
         }
-        $c[0].destinationType | Should -Be 'ipAddress'
+        $c[0].destinationType | Should -Be 'ip'
         $c[0].destinationHost | Should -Be '10.0.1.1'
-        @($c | ForEach-Object { $_.destinationType }) | Should -Contain 'ipRangeCidr'
-        ($c | Where-Object { $_.destinationType -eq 'ipRangeCidr' } | Select-Object -First 1).destinationHost | Should -Be '10.0.1.1/32'
+        $c[1].destinationType | Should -Be 'ipAddress'
+        @($c | ForEach-Object { $_.destinationType }) | Should -Not -Contain 'ipRangeCidr'
     }
 
     It 'bietet ipRange-Varianten und ipRangeCidr-Fallback für Start–Ende' {
@@ -75,6 +75,36 @@ Describe 'Get-GSASegmentSignature' {
         $fromYaml = Get-GSASegmentSignature -DestinationHost 'dc01.contoso.corp' -DestinationType 'fqdn' -Protocol 'tcp' -Ports @('3389')
         $fromGraph = Get-GSASegmentSignature -DestinationHost 'dc01.contoso.corp' -DestinationType 'fqdn' -Protocol 'tcp' -Ports @('3389-3389')
         $fromYaml | Should -Be $fromGraph
+    }
+
+    It 'normalisiert ip, ipAddress und ipRangeCidr/32 für Einzel-IPv4' {
+        $yaml = Get-GSASegmentSignature -DestinationHost '10.0.1.1' -DestinationType 'ipAddress' -Protocol 'tcp,udp' -Ports @('3389')
+        $graphIp = Get-GSASegmentSignature -DestinationHost '10.0.1.1' -DestinationType 'ip' -Protocol 'tcp,udp' -Ports @('3389-3389')
+        $graphCidr = Get-GSASegmentSignature -DestinationHost '10.0.1.1/32' -DestinationType 'ipRangeCidr' -Protocol 'tcp,udp' -Ports @('3389-3389')
+        $yaml | Should -Be $graphIp
+        $yaml | Should -Be $graphCidr
+    }
+}
+
+Describe 'Test-GSASegmentRequiresDestinationTypeRepair' {
+    It 'erkennt CIDR/32 als Reparaturbedarf für YAML ipAddress' {
+        $segment = [pscustomobject]@{
+            id              = 'seg-1'
+            destinationHost = '10.0.1.1/32'
+            destinationType = 'ipRangeCidr'
+        }
+        $dest = @{ host = '10.0.1.1'; type = 'ipAddress'; ports = @('3389'); protocol = 'tcp' }
+        Test-GSASegmentRequiresDestinationTypeRepair -Segment $segment -Destination $dest | Should -BeTrue
+    }
+
+    It 'erkennt Graph ip als konsistent zu YAML ipAddress' {
+        $segment = [pscustomobject]@{
+            id              = 'seg-1'
+            destinationHost = '10.0.1.1'
+            destinationType = 'ip'
+        }
+        $dest = @{ host = '10.0.1.1'; type = 'ipAddress'; ports = @('3389'); protocol = 'tcp' }
+        Test-GSASegmentRequiresDestinationTypeRepair -Segment $segment -Destination $dest | Should -BeFalse
     }
 }
 

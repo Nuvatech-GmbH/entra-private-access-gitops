@@ -73,7 +73,12 @@ function Set-GSAPrivateAccessApplication {
 
     foreach ($d in $desired) {
         $sig = Get-GSADestinationSignatureFromSpec -Destination $d
-        if ($existingBySig.ContainsKey($sig)) { continue }
+        if ($existingBySig.ContainsKey($sig)) {
+            $existing = $existingBySig[$sig]
+            if (-not (Test-GSASegmentRequiresDestinationTypeRepair -Segment $existing -Destination $d)) {
+                continue
+            }
+        }
 
         Invoke-GSARetryableOperation -Action {
             Add-GSAApplicationSegment -ApplicationId $applicationId -Destination $d -CorrelationId $CorrelationId

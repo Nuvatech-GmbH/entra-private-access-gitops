@@ -665,6 +665,86 @@ function ConvertTo-GSAGraphSegmentProtocol {
     return 'tcp'
 }
 
+function ConvertTo-GSAGraphSegmentDestinationTypeForPost {
+    <#
+    .SYNOPSIS
+    Mappt YAML destination.type auf den Graph-Wire-Typ für POST/PATCH.
+    Microsoft Entra SDK verwendet für Einzel-IPs destinationType 'ip' (nicht 'ipAddress').
+    #>
+    param(
+        [Parameter(Mandatory)][string]$YamlDestinationType,
+        [string]$DestinationHost
+    )
+
+    switch (($YamlDestinationType).Trim().ToLowerInvariant()) {
+        'ipaddress' { return 'ip' }
+        'fqdn' { return 'fqdn' }
+        'iprangecidr' { return 'ipRangeCidr' }
+        'iprange' { return 'ipRange' }
+        'dnssuffix' { return 'dnsSuffix' }
+        default { return $YamlDestinationType.Trim() }
+    }
+}
+
+function ConvertTo-GSAGraphSegmentDestinationTypeForSignature {
+    param(
+        [Parameter(Mandatory)][string]$DestinationType,
+        [Parameter(Mandatory)][string]$DestinationHost
+    )
+
+    $typeNorm = ([string]$DestinationType).Trim().ToLowerInvariant()
+    $hostNorm = ([string]$DestinationHost).Trim().ToLowerInvariant()
+
+    if ($typeNorm -in @('ip', 'ipaddress')) {
+        return 'ipaddress'
+    }
+
+    if ($typeNorm -eq 'iprangecidr' -and $hostNorm -match '^(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})/32$') {
+        return 'ipaddress'
+    }
+
+    return $typeNorm
+}
+
+function Normalize-GSAGraphSegmentHostForSignature {
+    param(
+        [Parameter(Mandatory)][string]$DestinationHost,
+        [Parameter(Mandatory)][string]$NormalizedDestinationType
+    )
+
+    $hostNorm = ([string]$DestinationHost).Trim().ToLowerInvariant()
+    if ($NormalizedDestinationType -eq 'ipaddress' -and $hostNorm -match '^(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})/32$') {
+        return $Matches[1]
+    }
+
+    return $hostNorm
+}
+
+function Test-GSASegmentRequiresDestinationTypeRepair {
+    param(
+        [Parameter(Mandatory)]$Segment,
+        [Parameter(Mandatory)][hashtable]$Destination
+    )
+
+    $specType = ([string]$Destination.type).Trim().ToLowerInvariant()
+    if ($specType -ne 'ipaddress') {
+        return $false
+    }
+
+    $graphType = ([string]$Segment.destinationType).Trim().ToLowerInvariant()
+    if ($graphType -in @('ip', 'ipaddress')) {
+        return $false
+    }
+
+    if ($graphType -ne 'iprangecidr') {
+        return $false
+    }
+
+    $specHost = ([string]$Destination.host).Trim().ToLowerInvariant()
+    $graphHost = ([string]$Segment.destinationHost).Trim().ToLowerInvariant()
+    return ($graphHost -eq "$specHost/32")
+}
+
 function Get-GSASegmentSignature {
     param(
         [string]$DestinationHost,
@@ -678,9 +758,10 @@ function Get-GSASegmentSignature {
         $portRanges.Add((ConvertTo-GSAGraphPortRange -Port ([string]$p))) | Out-Null
     }
     $portsNorm = ($portRanges | Sort-Object) -join ','
-    $hostNorm = ([string]$DestinationHost).Trim().ToLowerInvariant()
+    $typeNorm = ConvertTo-GSAGraphSegmentDestinationTypeForSignature -DestinationType $DestinationType -DestinationHost $DestinationHost
+    $hostNorm = Normalize-GSAGraphSegmentHostForSignature -DestinationHost $DestinationHost -NormalizedDestinationType $typeNorm
     $protoNorm = ConvertTo-GSAGraphSegmentProtocol -Protocol $Protocol
-    return ("$hostNorm|$DestinationType|$protoNorm|$portsNorm").ToLowerInvariant()
+    return ("$hostNorm|$typeNorm|$protoNorm|$portsNorm").ToLowerInvariant()
 }
 
 function Get-GSADestinationSignatureFromSpec {
@@ -923,7 +1004,7 @@ function Wait-GSAApplicationSegmentBySignature {
 function Get-GSAGraphSegmentDestinationCandidates {
     <#
     .SYNOPSIS
-    Liefert destinationHost/destinationType-Varianten für Graph-POST (YAML-Typ hat Vorrang; CIDR/32 nur Fallback).
+    Liefert destinationHost/destinationType-Varianten für Graph-POST (YAML-Typ hat Vorrang).
     #>
     param([Parameter(Mandatory)][hashtable]$Destination)
 
@@ -941,10 +1022,10 @@ function Get-GSAGraphSegmentDestinationCandidates {
         }
     }
 
-    # Einzel-IPv4: YAML-Typ ipAddress zuerst; ipRangeCidr/32 nur wenn Graph ipAddress ablehnt
+    # Einzel-IPv4: Graph-Wire-Typ 'ip' (Microsoft SDK), danach Schema-Alias 'ipAddress' – kein CIDR-/32-Fallback.
     if ($typeValue -eq 'ipAddress' -and $hostValue -match '^(?:\d{1,3}\.){3}\d{1,3}$') {
+        & $addCandidate $hostValue 'ip'
         & $addCandidate $hostValue 'ipAddress'
-        & $addCandidate "$hostValue/32" 'ipRangeCidr'
     }
     elseif ($typeValue -eq 'ipRange') {
         $range = ConvertFrom-GSAIpRangeHostString -HostValue $hostValue
@@ -1008,6 +1089,19 @@ function Add-GSAApplicationSegment {
 
     $sigDesired = Get-GSADestinationSignatureFromSpec -Destination $Destination
     $existingSegment = Find-GSAApplicationSegmentMatchingDestination -ApplicationId $ApplicationId -Destination $Destination
+    if ($existingSegment) {
+        if (Test-GSASegmentRequiresDestinationTypeRepair -Segment $existingSegment -Destination $Destination) {
+            $delUri = "https://graph.microsoft.com/beta/applications/$ApplicationId/onPremisesPublishing/segmentsConfiguration/microsoft.graph.ipSegmentConfiguration/applicationSegments/$($existingSegment.id)"
+            Invoke-GSARetryableOperation -Action { Invoke-GSAGraphBetaRequest -Method DELETE -RelativeUri $delUri } | Out-Null
+            Write-GSAStructuredLog -Level 'Information' -CorrelationId $CorrelationId -Message 'Application Segment mit CIDR/32 durch ipAddress ersetzt (Typ-Reparatur).' -Data @{
+                segmentId       = $existingSegment.id
+                previousType    = $existingSegment.destinationType
+                previousHost    = $existingSegment.destinationHost
+                desiredHost     = $Destination.host
+            }
+            $existingSegment = $null
+        }
+    }
     if ($existingSegment) {
         Write-GSAStructuredLog -Level 'Information' -CorrelationId $CorrelationId -Message 'Application Segment existiert bereits – übersprungen.' -Data @{
             applicationId   = $ApplicationId
@@ -1073,6 +1167,14 @@ function Add-GSAApplicationSegment {
                     segmentId         = $segmentId
                     destinationHost   = $dest.destinationHost
                     destinationType   = $dest.destinationType
+                    graphType         = if ($resolved.destinationType) { [string]$resolved.destinationType } else { '' }
+                    graphHost         = if ($resolved.destinationHost) { [string]$resolved.destinationHost } else { '' }
+                }
+                if (([string]$Destination.type).Trim().ToLowerInvariant() -eq 'ipaddress') {
+                    $graphType = ([string]$resolved.destinationType).Trim().ToLowerInvariant()
+                    if ($graphType -eq 'iprangecidr' -and ([string]$resolved.destinationHost) -match '/32$') {
+                        throw "Graph hat Einzel-IP '$($Destination.host)' als ipRangeCidr/32 gespeichert; ipAddress/ip wurde abgelehnt oder normalisiert. SegmentId: $segmentId"
+                    }
                 }
                 return $resolved
             }
@@ -1124,7 +1226,7 @@ Versuche und Graph-Antworten:
 $allErrorsText
 
 Hinweise:
-- Für eine einzelne IPv4 in YAML: type ipAddress und host 10.0.1.1 (bevorzugt; Fallback ipRangeCidr/32)
+- Für eine einzelne IPv4 in YAML: type ipAddress und host 10.0.1.1 (Graph-Wire-Typ ist 'ip'; kein CIDR-/32-Fallback)
 - type ipRange (Start–Ende): Graph akzeptiert oft nur ipRangeCidr; das Modul probiert mehrere Formate und ein passendes CIDR
 - Connector Group muss mindestens einen aktiven Connector enthalten
 - Private Access / Entra Suite Lizenz im Tenant aktiv
